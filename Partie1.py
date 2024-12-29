@@ -41,7 +41,7 @@ def plan_trips(taxis, tasks):
 
 # Fonction pour afficher la grille avec les taxis et les tâches
 def showgrid(n, taxis, tasks, allocations=None, file_name=None):
-    plt.figure(figsize=(8, 8))
+    plt.figure(figsize=(10, 10))
     plt.grid()
 
     plt.xlim([0, n])
@@ -50,6 +50,16 @@ def showgrid(n, taxis, tasks, allocations=None, file_name=None):
     plt.yticks(range(n + 1))
     ax = plt.gca()
     ax.set_aspect('equal', adjustable='box')
+
+    patches_by_cell = {}  # Nouveau dictionnaire pour stocker les patchs par case
+
+    def clear_cell(ax, patches_by_cell, cell_position):
+        """Efface tous les patchs d'une case spécifique."""
+        if cell_position in patches_by_cell:
+            for patch in patches_by_cell[cell_position]:
+                patch.remove()  # Supprimer le patch de l'axe
+            del patches_by_cell[cell_position]  # Supprimer l'entrée du dictionnaire
+            plt.draw()  # Redessiner la figure pour refléter les changements
 
     # Dessin des taxis (sous forme de triangles)
     for taxi in taxis:
@@ -63,9 +73,14 @@ def showgrid(n, taxis, tasks, allocations=None, file_name=None):
         ]
         poly = Polygon(triangle, closed=True, color='orange')
         ax.add_patch(poly)
+
+        # Stocker dans le dictionnaire
+        cell_key = (x, y)
+        patches_by_cell.setdefault(cell_key, []).append(poly)
+
         plt.text(cx, cy, f"T{taxi['id']}", fontsize=8, color='black', ha='center', va='center')
 
-    # Dessin des tâches (sous forme de carrés verts) centrés sur la case
+    # Dessin des tâches (sous forme de carrés verts)
     for task in tasks:
         x, y = task['position']
         cx, cy = y + 0.5, n - x - 1 + 0.5  # Centrer la tâche sur la case
@@ -73,13 +88,24 @@ def showgrid(n, taxis, tasks, allocations=None, file_name=None):
         square = Rectangle((cx - size / 2, cy - size / 2), size, size, color='green')
         ax.add_patch(square)
 
+        # Stocker dans le dictionnaire
+        cell_key = (x, y)
+        patches_by_cell.setdefault(cell_key, []).append(square)
+
         # Vérifier si un taxi est aussi sur la même case
         task_and_taxi = [taxi for taxi in taxis if taxi['position'] == task['position']]
         
         if task_and_taxi:
-            # Afficher un cercle bleu et les deux IDs (taxi et tâche)
+            # Effacer tous les patchs de cette case
+            clear_cell(ax, patches_by_cell, cell_key)
+
+            # Ajouter un cercle bleu et les deux IDs (taxi et tâche)
             circle = Circle((cx, cy), 0.25, color='blue')
             ax.add_patch(circle)
+
+            # Ajouter le cercle au dictionnaire
+            patches_by_cell.setdefault(cell_key, []).append(circle)
+
             plt.text(cx, cy + 0.25, f"T{task_and_taxi[0]['id']}", fontsize=8, color='white', ha='center', va='center')
             plt.text(cx, cy - 0.25, f"M{task['id']}", fontsize=8, color='white', ha='center', va='center')
         else:
@@ -96,6 +122,7 @@ def showgrid(n, taxis, tasks, allocations=None, file_name=None):
         plt.savefig(file_name)
     else:
         plt.show()
+
 
 # Simulation de l'environnement
 def run_simulation(n, num_taxis, task_frequency, num_steps):
@@ -141,7 +168,7 @@ def run_simulation(n, num_taxis, task_frequency, num_steps):
 n = 10  # Taille de l'environnement (n x n)
 num_taxis = 3  # Nombre de taxis
 task_frequency = 5  # Fréquence d'arrivée des tâches (toutes les 5 étapes)
-num_steps = 3  # Nombre de pas de temps
+num_steps = 2  # Nombre de pas de temps
 
 # Exécution de la simulation
 run_simulation(n, num_taxis, task_frequency, num_steps)
