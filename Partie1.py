@@ -99,15 +99,16 @@ def showgrid(n, taxis, tasks, allocations=None, file_name=None):
             # Effacer tous les patchs de cette case
             clear_cell(ax, patches_by_cell, cell_key)
 
-            # Ajouter un cercle bleu et les deux IDs (taxi et tâche)
+            # Ajouter un cercle bleu et le texte combiné ID taxi + ID tâche
             circle = Circle((cx, cy), 0.25, color='blue')
             ax.add_patch(circle)
 
             # Ajouter le cercle au dictionnaire
             patches_by_cell.setdefault(cell_key, []).append(circle)
 
-            plt.text(cx, cy + 0.25, f"T{task_and_taxi[0]['id']}", fontsize=8, color='white', ha='center', va='center')
-            plt.text(cx, cy - 0.25, f"M{task['id']}", fontsize=8, color='white', ha='center', va='center')
+            # Texte combiné : Taxi ID et Tâche ID
+            combined_text = f"T{task_and_taxi[0]['id']}M{task['id']}"
+            plt.text(cx, cy, combined_text, fontsize=8, color='white', ha='center', va='center')
         else:
             # Si pas de taxi, afficher normalement la tâche
             plt.text(cx, cy, f"M{task['id']}", fontsize=8, color='black', ha='center', va='center')
