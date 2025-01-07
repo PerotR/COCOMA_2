@@ -128,8 +128,8 @@ def generate_task(n, task_id, available_positions, used_tasks):
         if start_pos_tmp != end_pos_tmp and (start_pos_tmp, end_pos_tmp) not in used_tasks
     ]
 
-    print(f"valid_tasks: {valid_tasks}, len(valid_tasks): {len(valid_tasks)}") #attention tableau de taille ((n-num_taxis)*(n-num_taxis-1))
-    # print(f"len(valid_tasks): {len(valid_tasks)}")
+    # print(f"valid_tasks: {valid_tasks}, len(valid_tasks): {len(valid_tasks)}") #attention tableau de taille ((n-num_taxis)*(n-num_taxis-1))
+    print(f"len(valid_tasks): {len(valid_tasks)}")
 
     # verif si on peut generer une tache
     if len(valid_tasks) == 0:
@@ -183,6 +183,67 @@ def schedule_tasks(taxis, tasks):
 
     return best_order, best_cost
 
+def greedy_task_assignment(n, taxis, tasks):
+
+    all_permutations = [list(p) for p in itertools.permutations(tasks)]
+    best_permutation_cost = float('inf')
+    best_permutation = None
+
+    for permutation in all_permutations:
+
+        tasks = permutation.copy()
+
+        for task in tasks:
+            if task['assigned'] != -1:
+                continue
+            
+            best_taxi = None
+            best_cost = float('inf')
+
+            for taxi in taxis:
+                total_cost = 0.0
+                list_task_cost = 0.0
+                dist_cost = calculate_distance(taxi['position'], task['start'])
+                task_cost = task['cost']
+                for t in taxi['tasks']:
+                    list_task_cost += tasks[t]['cost'] + calculate_distance(tasks[t]['end'], task['start']) 
+                total_cost = dist_cost + task_cost + list_task_cost
+
+                print(f"dist_cost: {dist_cost:.2f}, task_cost: {task_cost:.2f}, list_task_cost: {list_task_cost:.2f}, total_cost: {total_cost:.2f} pour taxi: {taxi['id']} et task: {task['id']}")
+
+                if total_cost < best_cost:
+                    best_cost = total_cost
+                    best_taxi = taxi
+                
+            task['assigned'] = best_taxi['id']
+            best_taxi['tasks'].append(task['id'])
+
+            print(f"task {task['id']} assigned to taxi {best_taxi['id']}")
+            print(f"best_cost: {best_cost:.2f}")
+
+            # showgrid(n, taxis, tasks)
+
+            best_taxi['position'] = task['end']
+
+            total_cost_permutation = best_cost
+
+            print(f"total_cost_permutation: {total_cost_permutation:.2f}")
+
+        if total_cost_permutation < best_permutation_cost:
+            best_permutation_cost = total_cost_permutation
+            best_permutation = permutation
+            print(f"best_permutation_cost: {best_permutation_cost:.2f}")
+            print(f"best_permutation: {best_permutation}")
+
+    print(f"best_permutation: {best_permutation}")
+    print(f"best_permutation_cost: {best_permutation_cost:.2f}")
+
+    # showgrid(n, taxis, tasks)
+
+    return best_permutation_cost
+                    
+
+
 # Simulation de l'environnement
 def run_simulation(n, num_taxis, max_task_gen, num_steps):
 
@@ -230,25 +291,38 @@ def run_simulation(n, num_taxis, max_task_gen, num_steps):
             task_count += 1  # Incrémenter le compteur de tâches
 
         tasks.extend(new_tasks)
+        # print(f"tasks: {tasks}")
         for task in new_tasks:
             print(f"New task generated: M{task['id']} Start: {task['start']}, End: {task['end']}, Cost: {task['cost']:.2f}")
-
-        # Planification des tâches
-        best_order, best_cost = schedule_tasks(taxis, tasks)
-        # print(f"tasks: {tasks}")
-        print(f"Best order of tasks: {best_order}")
-        print(f"Best total cost: {best_cost:.2f}")
 
         # Afficher toutes les tâches
         print("Tasks:")
         for task in tasks:
-            status = "Assigned" if task['assigned'] else "Unassigned"
-            print(f"  - ID: M{task['id']}, Cost: {task['cost']:.2f}, Status: {status}")
+            print(f"  - ID: M{task['id']}, Cost: {task['cost']:.2f}, Status: {task['assigned']}")
+        
+        best_cost = greedy_task_assignment(n, taxis, tasks)
 
-        if end:
-            return # arreter la simulation si plus de taches a generer
+        print(f"Best total cost: {best_cost:.2f}")
+        print("taxis: ", taxis)
 
         # Afficher la grille
         showgrid(n, taxis, tasks)
 
-run_simulation(5, 3, 5, 2)
+        if end:
+            return # arreter la simulation si plus de taches a generer
+
+        
+
+# run_simulation(5, 3, 3, 2)
+
+taxis_test = [{'id': 1, 'position': (1, 0), 'tasks': []}, {'id': 2, 'position': (4, 4), 'tasks': []}, {'id': 3, 'position': (0, 2), 'tasks': []}]
+
+tasks_test = [
+    {'id': 0, 'start': (1, 1), 'end': (3, 3), 'cost': 4.24, 'assigned': -1},
+    {'id': 1, 'start': (3, 3), 'end': (0, 4), 'cost': 3.61, 'assigned': -1},
+    {'id': 2, 'start': (4, 0), 'end': (2, 1), 'cost': 2.83, 'assigned': -1},
+    {'id': 3, 'start': (2, 1), 'end': (1, 4), 'cost': 3.61, 'assigned': -1},
+    {'id': 4, 'start': (0, 3), 'end': (4, 2), 'cost': 7.21, 'assigned': -1}
+]
+
+best_cost = greedy_task_assignment(5, taxis_test, tasks_test)
