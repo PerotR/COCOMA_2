@@ -3,6 +3,7 @@ import numpy as np
 from matplotlib.patches import Polygon, FancyArrowPatch
 import random
 import itertools
+from copy import deepcopy
 
 # Fonction pour calculer la distance euclidienne entre deux points
 def calculate_distance(start, end):
@@ -189,9 +190,19 @@ def greedy_task_assignment(n, taxis, tasks):
     best_permutation_cost = float('inf')
     best_permutation = None
 
+    showgrid(n, taxis, tasks)
+    
+    initial_taxis = deepcopy(taxis) # sauvegarde des taxis initiaux
+
+    # all_permutations = [[{'id': 0, 'start': (1, 1), 'end': (3, 3), 'cost': 4.24, 'assigned': -1}, {'id': 4, 'start': (0, 3), 'end': (4, 2), 'cost': 7.21, 'assigned': -1}, {'id': 2, 'start': (4, 0), 'end': (2, 1), 'cost': 2.83, 'assigned': -1}, {'id': 1, 'start': (3, 3), 'end': (0, 4), 'cost': 3.61, 'assigned': -1}, {'id': 3, 'start': (2, 1), 'end': (1, 4), 'cost': 3.61, 'assigned': -1}]]
+
     for permutation in all_permutations:
 
-        tasks = permutation.copy()
+        print("************************************DEBUT PERMUTATION************************************\n")
+        
+        tasks = deepcopy(permutation)
+        taxis = deepcopy(initial_taxis)
+        total_cost_permutation = 0.0
 
         for task in tasks:
             if task['assigned'] != -1:
@@ -218,22 +229,29 @@ def greedy_task_assignment(n, taxis, tasks):
             task['assigned'] = best_taxi['id']
             best_taxi['tasks'].append(task['id'])
 
-            print(f"task {task['id']} assigned to taxi {best_taxi['id']}")
+            print(f"le taxi {best_taxi['id']} a pris la tache {task['id']}")
             print(f"best_cost: {best_cost:.2f}")
 
             # showgrid(n, taxis, tasks)
 
             best_taxi['position'] = task['end']
 
-            total_cost_permutation = best_cost
+            # ici on veut prendre le plus elevé des best_cost, ce n'est pas un cumul. On prend la valeur la plus elevée de la liste de tache d'un taxi qui sera le plus rapide à effectuer cet ensemble de taches
+            if total_cost_permutation < best_cost:
+                total_cost_permutation = best_cost
+                
 
             print(f"total_cost_permutation: {total_cost_permutation:.2f}")
 
+            print("ensemble de taxis: ", taxis)
+
         if total_cost_permutation < best_permutation_cost:
             best_permutation_cost = total_cost_permutation
-            best_permutation = permutation
+            best_permutation = tasks
             print(f"best_permutation_cost: {best_permutation_cost:.2f}")
             print(f"best_permutation: {best_permutation}")
+
+        print("************************************FIN PERMUTATION************************************\n")
 
     print(f"best_permutation: {best_permutation}")
     print(f"best_permutation_cost: {best_permutation_cost:.2f}")
