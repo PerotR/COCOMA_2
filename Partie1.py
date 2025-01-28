@@ -343,4 +343,4 @@ tasks_test = [
     {'id': 4, 'start': (0, 3), 'end': (4, 2), 'cost': 7.21, 'assigned': -1}
 ]
 
-best_cost = greedy_task_assignment(5, taxis_test, tasks_test)
+#best_cost = greedy_task_assignment(5, taxis_test, tasks_test)
