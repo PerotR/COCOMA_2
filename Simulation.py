@@ -7,10 +7,10 @@ from copy import deepcopy
 
 # --- Paramètres de la simulation ---
 WIDTH, HEIGHT = 800, 600         # Taille de l'environnement (pixels)
-NUM_TAXIS = 5                    # Nombre de taxis
-TASK_INTERVAL = 2000             # Intervalle de génération d'une nouvelle tâche en millisecondes
+NUM_TAXIS = 2                    # Nombre de taxis
+TASK_INTERVAL = 10000             # Intervalle de génération d'une nouvelle tâche en millisecondes
 TAXI_SPEED = 100                 # Vitesse du taxi (pixels par seconde)
-NUM_TASKS_SPAWN = 5              # Nombre de tâches à générer à chaque intervalle
+NUM_TASKS_SPAWN = 4              # Nombre de tâches à générer à chaque intervalle
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 ORANGE = (255, 165, 0)
@@ -134,15 +134,21 @@ class Simulation:
         self.task_interval = task_interval
         self.last_task_time = 0  # Temps (en ms) de la dernière génération de tâche
         self.task_counter = 0    # Compteur pour assigner des ID uniques aux tâches
+        new_tasks = self.generate_task() # Générer les premières tâches
+        for new_task in new_tasks:
+            self.greedy_task_assignment(self.taxis, new_task)
 
 
     def generate_task(self):
         """Génère une nouvelle tâche avec un départ et une destination aléatoires dans l'environnement."""
-        start = (random.randint(0, self.width), random.randint(0, self.height))
-        destination = (random.randint(0, self.width), random.randint(0, self.height))
-        task = Task(start, destination, self.task_counter)
-        self.task_counter += 1
-        return task
+        tasks = []
+        for _ in range(self.num_tasks_spawn):
+            start = (random.randint(0, self.width), random.randint(0, self.height))
+            destination = (random.randint(0, self.width), random.randint(0, self.height))
+            task = Task(start, destination, self.task_counter)
+            self.task_counter += 1
+            tasks.append(task)
+        return tasks
 
     def allocate_task(self, task):
         """
@@ -248,9 +254,10 @@ class Simulation:
          - Met à jour la position de chaque taxi.
         """
         if current_time - self.last_task_time > self.task_interval:
-            new_task = self.generate_task()
+            new_tasks = self.generate_task()
             # self.allocate_task(new_task)
-            self.greedy_task_assignment(self.taxis, new_task)
+            for new_task in new_tasks:
+                self.greedy_task_assignment(self.taxis, new_task)
             self.last_task_time = current_time
 
         for taxi in self.taxis:
@@ -281,7 +288,7 @@ class Simulation:
             screen.blit(text, (taxi.position[0] - 10, taxi.position[1] - 20))
 
 def main():
-    step = 0
+    # step = 0
     pygame.init()
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption("Simulation Allocation en ligne de tâches (Partie 1)")
@@ -300,7 +307,7 @@ def main():
 
         sim.update(current_time, dt)
         sim.draw(screen)
-        step+=1
+        # step+=1
         # if(step % 60 == 0):
         #     print(f"Step {step}")
         pygame.display.flip()
