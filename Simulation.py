@@ -10,7 +10,7 @@ WIDTH, HEIGHT = 800, 600         # Taille de l'environnement (pixels)
 NUM_TAXIS = 2                    # Nombre de taxis
 TASK_INTERVAL = 10000             # Intervalle de génération d'une nouvelle tâche en millisecondes
 TAXI_SPEED = 100                 # Vitesse du taxi (pixels par seconde)
-NUM_TASKS_SPAWN = 4              # Nombre de tâches à générer à chaque intervalle
+NUM_TASKS_SPAWN = 5              # Nombre de tâches à générer à chaque intervalle
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 ORANGE = (255, 165, 0)
@@ -36,6 +36,18 @@ class Taxi:
         self.target_index = 0       # Indice du waypoint courant dans self.route
         self.current_route_cost = 0 # Coût total du chemin planifié
         self.isWorking = False      # ici on recupere pour l'affichage si le taxi est entre le depart et la destination d'une tache ou si il va vers le depart d'une tache
+        self.total_route_cost = 0   # Coût total du chemin planifié
+
+    def calculate_total_route_cost(self): 
+        """On calcule le coût total du chemin planifié, 
+        je l'ai utilisé pour la fonction greedy_task_assignment, 
+        pour avoir accès au coût total de chaque taxi sans faire plan_route"""
+        self.total_route_cost = 0
+        pos = self.position
+        for task in self.tasks:
+            self.total_route_cost += math.dist(pos, task.start) + math.dist(task.start, task.destination)
+            pos = task.destination
+
 
     def plan_route(self):
         """
@@ -132,11 +144,9 @@ class Simulation:
             pos = (random.randint(0, width), random.randint(0, height))
             self.taxis.append(Taxi(i, pos))
         self.task_interval = task_interval
-        self.last_task_time = 0  # Temps (en ms) de la dernière génération de tâche
+        self.last_task_time = -10000  # Temps (en ms) de la dernière génération de tâche
         self.task_counter = 0    # Compteur pour assigner des ID uniques aux tâches
-        new_tasks = self.generate_task() # Générer les premières tâches
-        for new_task in new_tasks:
-            self.greedy_task_assignment(self.taxis, new_task)
+
 
 
     def generate_task(self):
@@ -184,7 +194,7 @@ class Simulation:
         if best_taxi is not None:
             best_taxi.add_task(task)
 
-    def greedy_task_assignment(self, taxis, task):
+    def greedy_task_assignment(n, taxis, tasks):
         """
         Affecte chacune des tâches de la liste tasks au taxi le plus proche
         (en tenant compte du temps qu'il met à finir ses tâches déjà assignées).
@@ -199,52 +209,126 @@ class Simulation:
         La fonction affiche l'état initial et final via showgrid (à définir ailleurs).
         """
         
-        # Pour chaque tâche à affecter, on choisit le taxi avec le moindre coût estimé.
-        
-        best_taxi = None
-        best_estimated_cost = float('inf')
-        
-        for taxi in taxis:
-            # Calcul du coût de réalisation si l'on affecte cette tâche au taxi,
-            # en suivant l'ordre FIFO des tâches déjà en file.
-            cost = 0.0
-            current_pos = taxi.position
+
+        all_permutation = [list(task) for task in itertools.permutations(tasks)]
+
+        taxi_tmp = deepcopy(taxis)
+
+        i = 0
+        for permutation in all_permutation:
+            i+=1
+            print(f"Permutation : {i}")
+            for t in permutation:
+                print(f"Tâche {getattr(t, 'id', 'inconnue')} : départ = {t.start}, destination = {t.destination}")
+
+        best_Permutation = None
+        for permutation in all_permutation:
+            best_allocation_cost = float('inf')
+            list_estimated_cost = []
+            longest_route = 0
+            taxi_tmp = deepcopy(taxis) # On remet taxi_tmp à sa valeur initiale à chaque nouvelle permutation
+
+            # Pour chaque tâche à affecter, on choisit le taxi avec le moindre coût estimé.
+            for task in permutation:
+                best_taxi = None
+                best_estimated_cost = float('inf')
+
+                for taxi in taxi_tmp:
+                    # Calcul du coût de réalisation si l'on affecte cette tâche au taxi,
+                    # en suivant l'ordre FIFO des tâches déjà en file.
+                    cost = 0.0
+                    current_pos = taxi.position
+                    
+                    # Parcourt des tâches déjà affectées (exécutées dans l'ordre d'arrivée)
+                    for t in taxi.tasks:
+                        cost += math.dist(current_pos, t.start) + math.dist(t.start, t.destination)
+                        current_pos = t.destination
+                    
+                    # Coût pour la nouvelle tâche
+                    cost += math.dist(current_pos, task.start) + math.dist(task.start, task.destination)
+                    
+                    # print(f"Taxi {taxi.id} : coût estimé = {cost:.2f} pour la tâche {getattr(task, 'id', 'inconnue')}")
+                    
+                    if cost < best_estimated_cost:
+                        best_estimated_cost = cost
+                        best_taxi = taxi
+
+                best_taxi.tasks.append(task)
+
+            for taxi in taxi_tmp: # On calcule le coût de la permutation
+                # print(f"position du taxi : {taxi.position} et taches du taxi {taxi.id} : ")
+                # for t in taxi.tasks:
+                #     print(f"Tâche {getattr(t, 'id', 'inconnue')} : départ = {t.start}, destination = {t.destination}")
+                taxi.calculate_total_route_cost()
+                list_estimated_cost.append(taxi.total_route_cost)
+
+            longest_route = max(list_estimated_cost) # On récupère le coût le plus long entre les taxis pour avoir le coût de la permutation
+
+            print(f"Coût de la permutation : {longest_route}")
+
+            if longest_route < best_allocation_cost: # On compare le coût de la permutation avec le meilleur coût trouvé
+                best_allocation_cost = longest_route
+                best_Permutation = permutation
+
+        print("MEILLEURE PERMUTATION")
+        print(f"Meilleur coût : {best_allocation_cost}")
+        for t in permutation:
+            print(f"Tâche {getattr(t, 'id', 'inconnue')} : départ = {t.start}, destination = {t.destination}")
+
+        for task in best_Permutation:
+            best_taxi = None
+            best_estimated_cost = float('inf')
+
+            for taxi in taxis:
+                # Calcul du coût de réalisation si l'on affecte cette tâche au taxi,
+                # en suivant l'ordre FIFO des tâches déjà en file.
+                cost = 0.0
+                current_pos = taxi.position
+                
+                # Parcourt des tâches déjà affectées (exécutées dans l'ordre d'arrivée)
+                for t in taxi.tasks:
+                    cost += math.dist(current_pos, t.start) + math.dist(t.start, t.destination)
+                    current_pos = t.destination
+                
+                # Coût pour la nouvelle tâche
+                cost += math.dist(current_pos, task.start) + math.dist(task.start, task.destination)
+                
+                print(f"Taxi {taxi.id} : coût estimé = {cost:.2f} pour la tâche {getattr(task, 'id', 'inconnue')}")
+                
+                if cost < best_estimated_cost:
+                    best_estimated_cost = cost
+                    best_taxi = taxi
+
+
+            print(f"=> Affectation de la tâche {getattr(task, 'id', 'inconnue')} au taxi {best_taxi.id} (coût estimé = {best_estimated_cost:.2f})\n")
             
-            # Parcourt des tâches déjà affectées (exécutées dans l'ordre d'arrivée)
-            for t in taxi.tasks:
-                cost += math.dist(current_pos, t.start) + math.dist(t.start, t.destination)
+            # Affectation de la tâche au taxi choisi (ajout en fin de file d'attente)
+            best_taxi.tasks.append(task)
+            
+            # Mise à jour de l'itinéraire du taxi en mode FIFO :
+            # Si le taxi n'avait pas d'itinéraire (pas de tâches en attente), on le crée.
+            # Sinon, on ajoute simplement les deux points (start et destination) à la suite.
+            if not best_taxi.route:
+                best_taxi.route = [task.start, task.destination]
+                best_taxi.target_index = 0
+            else:
+                best_taxi.route.extend([task.start, task.destination])
+            
+            # On peut aussi mettre à jour le coût total estimé de la file (pour information)
+            current_pos = best_taxi.position
+            route_cost = 0.0
+            for t in best_taxi.tasks:
+                route_cost += math.dist(current_pos, t.start) + math.dist(t.start, t.destination)
                 current_pos = t.destination
+            best_taxi.current_route_cost = route_cost
+
+        for taxi in taxis:
+            print(f"taches du taxi {taxi.id} : ")
+            for t in taxi.tasks:
+                print(f"Tâche {getattr(t, 'id', 'inconnue')} : départ = {t.start}, destination = {t.destination}")
+            print(f"Coût total estimé : {taxi.current_route_cost:.2f}\n")
+
             
-            # Coût pour la nouvelle tâche
-            cost += math.dist(current_pos, task.start) + math.dist(task.start, task.destination)
-            
-            print(f"Taxi {taxi.id} : coût estimé = {cost:.2f} pour la tâche {getattr(task, 'id', 'inconnue')}")
-            
-            if cost < best_estimated_cost:
-                best_estimated_cost = cost
-                best_taxi = taxi
-        
-        print(f"=> Affectation de la tâche {getattr(task, 'id', 'inconnue')} au taxi {best_taxi.id} (coût estimé = {best_estimated_cost:.2f})\n")
-        
-        # Affectation de la tâche au taxi choisi (ajout en fin de file d'attente)
-        best_taxi.tasks.append(task)
-        
-        # Mise à jour de l'itinéraire du taxi en mode FIFO :
-        # Si le taxi n'avait pas d'itinéraire (pas de tâches en attente), on le crée.
-        # Sinon, on ajoute simplement les deux points (start et destination) à la suite.
-        if not best_taxi.route:
-            best_taxi.route = [task.start, task.destination]
-            best_taxi.target_index = 0
-        else:
-            best_taxi.route.extend([task.start, task.destination])
-        
-        # On peut aussi mettre à jour le coût total estimé de la file (pour information)
-        current_pos = best_taxi.position
-        route_cost = 0.0
-        for t in best_taxi.tasks:
-            route_cost += math.dist(current_pos, t.start) + math.dist(t.start, t.destination)
-            current_pos = t.destination
-        best_taxi.current_route_cost = route_cost
 
 
     def update(self, current_time, dt):
@@ -256,8 +340,8 @@ class Simulation:
         if current_time - self.last_task_time > self.task_interval:
             new_tasks = self.generate_task()
             # self.allocate_task(new_task)
-            for new_task in new_tasks:
-                self.greedy_task_assignment(self.taxis, new_task)
+            self.greedy_task_assignment(self.taxis, new_tasks)
+
             self.last_task_time = current_time
 
         for taxi in self.taxis:

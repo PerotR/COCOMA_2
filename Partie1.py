@@ -1,3 +1,4 @@
+import math
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import Polygon, FancyArrowPatch
@@ -344,3 +345,16 @@ tasks_test = [
 ]
 
 #best_cost = greedy_task_assignment(5, taxis_test, tasks_test)
+
+
+#-----------------------------------TESTS-----------------------------------#
+
+# start = math.dist((479, 44), (226, 126))
+# res1 = calculate_distance((226, 126), (474, 76))
+# res = start + res1
+# print(f"res: {res:.2f}")
+
+# dist = calculate_distance((114, 332), (473, 439))
+# res2 = calculate_distance((473, 439),(233, 431))
+# ressss = dist + res2
+# print(f"ressss: {ressss:.2f}")
