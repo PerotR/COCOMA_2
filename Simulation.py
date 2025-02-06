@@ -140,6 +140,7 @@ class Simulation:
         self.height = height
         self.taxis = []
         self.num_tasks_spawn = num_tasks_spawn
+        self.paused = False
         for i in range(num_taxis):
             pos = (random.randint(0, width), random.randint(0, height))
             self.taxis.append(Taxi(i, pos))
@@ -337,15 +338,16 @@ class Simulation:
          - Génère une nouvelle tâche tous les task_interval millisecondes et l'alloue.
          - Met à jour la position de chaque taxi.
         """
-        if current_time - self.last_task_time > self.task_interval:
-            new_tasks = self.generate_task()
-            # self.allocate_task(new_task)
-            self.greedy_task_assignment(self.taxis, new_tasks)
+        if not self.paused:
+            if current_time - self.last_task_time > self.task_interval:
+                new_tasks = self.generate_task()
+                # self.allocate_task(new_task)
+                self.greedy_task_assignment(self.taxis, new_tasks)
 
-            self.last_task_time = current_time
+                self.last_task_time = current_time
 
-        for taxi in self.taxis:
-            taxi.update(dt)
+            for taxi in self.taxis:
+                taxi.update(dt)
 
     def draw(self, screen):
         """Affiche l'environnement, les trajets planifiés et les taxis."""
@@ -353,23 +355,40 @@ class Simulation:
 
         # Pour chaque taxi, dessiner son itinéraire et sa position
         for taxi in self.taxis:
-            # Tracer la route planifiée : depuis la position actuelle jusqu'aux waypoints restants
             if taxi.route and taxi.target_index < len(taxi.route):
                 points = [taxi.position] + taxi.route[taxi.target_index:]
-                if len(points) >= 2:
-                    line_color = BLACK if not taxi.isWorking else ORANGE
-                    pygame.draw.lines(screen, line_color, False, points, 2)
 
-                # Afficher les waypoints : en vert pour un départ, en bleu pour une destination
+                for i in range(len(points) - 1):
+                    # Vérifier si ce segment correspond à une tâche en cours
+                    if taxi.isWorking and i == taxi.target_index - 1 and i % 2 == 0:
+                        line_color = ORANGE  # Segment de la tâche active
+                    else:
+                        line_color = BLACK  # Autres segments
+
+                    pygame.draw.line(screen, line_color, points[i], points[i + 1], 2)
+
+                # Affichage des waypoints : Départ (vert), Destination (bleu)
                 for i, point in enumerate(taxi.route[taxi.target_index:], start=taxi.target_index):
                     color = GREEN if i % 2 == 0 else BLUE
                     pygame.draw.circle(screen, color, (int(point[0]), int(point[1])), 5)
 
             # Dessiner le taxi (cercle rouge) et son identifiant
             pygame.draw.circle(screen, RED, (int(taxi.position[0]), int(taxi.position[1])), 8)
+
             font = pygame.font.SysFont(None, 24)
             text = font.render(str(taxi.id), True, (0, 0, 0))
             screen.blit(text, (taxi.position[0] - 10, taxi.position[1] - 20))
+
+    def toggle_pause(self):
+        if self.paused:
+            # Reprendre : Ajuster last_task_time pour ne pas sauter des tâches
+            self.last_task_time += pygame.time.get_ticks() - self.pause_start_time
+        else:
+            # Mettre en pause : Enregistrer le temps où la pause a commencé
+            self.pause_start_time = pygame.time.get_ticks()
+
+        self.paused = not self.paused
+
 
 def main():
     # step = 0
@@ -388,6 +407,8 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+                sim.toggle_pause()
 
         sim.update(current_time, dt)
         sim.draw(screen)
