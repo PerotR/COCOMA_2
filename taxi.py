@@ -5,7 +5,7 @@ import config
 class Taxi:
     """Un taxi qui se déplace dans l'environnement et exécute des tâches."""
     def __init__(self, id, position):
-        self.id = id
+        self.id = id                # Identifiant unique du taxi
         self.position = position    # Position actuelle (x, y)
         self.tasks = []             # Liste des tâches attribuées (dans l'ordre optimal)
         self.route = []             # Liste des points (waypoints) à suivre, calculée par plan_route()

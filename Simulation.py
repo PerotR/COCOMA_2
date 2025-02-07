@@ -241,6 +241,7 @@ def main():
     clock = pygame.time.Clock()
 
     sim = Simulation(config.WIDTH, config.HEIGHT, config.NUM_TAXIS, config.TASK_INTERVAL, config.NUM_TASKS_SPAWN)
+    print(sim)
     running = True
 
     while running:
