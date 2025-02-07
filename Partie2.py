@@ -1,4 +1,4 @@
-from Simulation import *
+from simulation import *
 
 
 def generate_dcop(taxis,tasks, nom):
