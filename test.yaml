@@ -1,0 +1,113 @@
+name: Allocation en ligne de taches 
+objective: min 
+
+domains: 
+   taxis: 
+      values: [T0,T1]
+
+variables: 
+   Tache 0 : 
+      domain: taxis 
+   Tache 1 : 
+      domain: taxis 
+   Tache 2 : 
+      domain: taxis 
+   Tache 3 : 
+      domain: taxis 
+   Tache 4 : 
+      domain: taxis 
+
+constraints: 
+   pref_1: 
+      type: extensional 
+      variables: 0 
+      values: 
+         1: T0 
+         2: T1 
+
+   pref_2: 
+      type: extensional 
+      variables: 1 
+      values: 
+         1: T0 
+         2: T1 
+
+   pref_3: 
+      type: extensional 
+      variables: 2 
+      values: 
+         1: T0 
+         2: T1 
+
+   pref_4: 
+      type: extensional 
+      variables: 3 
+      values: 
+         1: T0 
+         2: T1 
+
+   pref_5: 
+      type: extensional 
+      variables: 4 
+      values: 
+         1: T0 
+         2: T1 
+
+   different_0_1: 
+      type: intention 
+      function: 559.1940629155499 if 0==1 else 0 
+
+   different_0_2: 
+      type: intention 
+      function: 631.9976265778218 if 0==2 else 0 
+
+   different_0_3: 
+      type: intention 
+      function: 669.2876810460506 if 0==3 else 0 
+
+   different_0_4: 
+      type: intention 
+      function: 633.3442981506978 if 0==4 else 0 
+
+   different_1_2: 
+      type: intention 
+      function: 586.7750846789594 if 1==2 else 0 
+
+   different_1_3: 
+      type: intention 
+      function: 760.2368052126916 if 1==3 else 0 
+
+   different_1_4: 
+      type: intention 
+      function: 835.0 if 1==4 else 0 
+
+   different_2_3: 
+      type: intention 
+      function: 240.6200324162558 if 2==3 else 0 
+
+   different_2_4: 
+      type: intention 
+      function: 415.26015941816524 if 2==4 else 0 
+
+   different_3_4: 
+      type: intention 
+      function: 694.4926205511474 if 3==4 else 0 
+
+   cout_T0: 
+      type: intention 
+      function: 1154.9511803203043 if 0=='T0' else 1424.226701260784 if 1=='T0' else 636.2620935033972 if 2=='T0' else 1114.926660405853 if 3=='T0' else 1000.6038402908405
+   cout_T1: 
+      type: intention 
+      function: 935.0273054949167 if 0=='T1' else 1435.5311777323845 if 1=='T1' else 299.89045158294255 if 2=='T1' else 1125.3087517247254 if 3=='T1' else 756.8574677662266
+
+agents: 
+   0: 
+      capacity: 1 
+   1: 
+      capacity: 1 
+   2: 
+      capacity: 1 
+   3: 
+      capacity: 1 
+   4: 
+      capacity: 1 
