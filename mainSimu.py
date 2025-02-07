@@ -1,13 +1,137 @@
-# simulation.py
 import pygame
 import random
 import math
 import itertools
 import sys
 from copy import deepcopy
-from taxi import Taxi
-from task import Task
-import config
+
+# --- Paramètres de la simulation ---
+WIDTH, HEIGHT = 800, 600         # Taille de l'environnement (pixels)
+NUM_TAXIS = 2                    # Nombre de taxis
+TASK_INTERVAL = 10000             # Intervalle de génération d'une nouvelle tâche en millisecondes
+TAXI_SPEED = 100                 # Vitesse du taxi (pixels par seconde)
+NUM_TASKS_SPAWN = 5              # Nombre de tâches à générer à chaque intervalle
+RED = (255, 0, 0)
+GREEN = (0, 255, 0)
+ORANGE = (255, 165, 0)
+BLUE = (0, 0, 255)
+BLACK = (0, 0, 0)
+
+# --- Classes de base ---
+
+class Task:
+    """Représente une tâche (trajet) avec un point de départ et une destination."""
+    def __init__(self, start, destination, id=None):
+        self.id = id
+        self.start = start          # (x, y)
+        self.destination = destination
+
+class Taxi:
+    """Un taxi qui se déplace dans l'environnement et exécute des tâches."""
+    def __init__(self, id, position):
+        self.id = id
+        self.position = position    # Position actuelle (x, y)
+        self.tasks = []             # Liste des tâches attribuées (dans l'ordre optimal)
+        self.route = []             # Liste des points (waypoints) à suivre, calculée par plan_route()
+        self.target_index = 0       # Indice du waypoint courant dans self.route
+        self.current_route_cost = 0 # Coût total du chemin planifié
+        self.isWorking = False      # ici on recupere pour l'affichage si le taxi est entre le depart et la destination d'une tache ou si il va vers le depart d'une tache
+        self.total_route_cost = 0   # Coût total du chemin planifié
+
+    def calculate_total_route_cost(self): 
+        """On calcule le coût total du chemin planifié, 
+        je l'ai utilisé pour la fonction greedy_task_assignment, 
+        pour avoir accès au coût total de chaque taxi sans faire plan_route"""
+        self.total_route_cost = 0
+        pos = self.position
+        for task in self.tasks:
+            self.total_route_cost += math.dist(pos, task.start) + math.dist(task.start, task.destination)
+            pos = task.destination
+
+
+    def plan_route(self):
+        """
+        Recalcule l'ordonnancement optimal des tâches en testant toutes les permutations.
+        Le coût d'un ordre est défini par : 
+           distance(position initiale, tâche.start) + distance(tâche.start, tâche.destination)
+           + distances entre la destination d'une tâche et le début de la suivante.
+        """
+        if not self.tasks:
+            self.route = []
+            self.current_route_cost = 0
+            self.target_index = 0
+            return
+
+        best_order = None
+        best_cost = float('inf')
+        # Tester toutes les permutations possibles des tâches
+        for perm in itertools.permutations(self.tasks):
+            cost = 0
+            pos = self.position
+            for task in perm:
+                cost += math.dist(pos, task.start)
+                cost += math.dist(task.start, task.destination)
+                pos = task.destination
+            if cost < best_cost:
+                best_cost = cost
+                best_order = perm
+
+        # Mettre à jour la liste des tâches selon l'ordre optimal trouvé
+        self.tasks = list(best_order)
+        self.current_route_cost = best_cost
+
+        # Construire la liste des waypoints : pour chaque tâche, on passe par le départ puis la destination
+        self.route = []
+        for task in self.tasks:
+            self.route.append(task.start)
+            self.route.append(task.destination)
+        self.target_index = 0
+
+    def add_task(self, task):
+        """Ajoute une tâche à la liste et recalcule le planning."""
+        self.tasks.append(task)
+        self.plan_route()
+
+    def update(self, dt):
+        """
+        Fait avancer le taxi le long de son itinéraire.
+        dt : temps écoulé depuis la dernière mise à jour (en secondes)
+        """
+        if self.target_index >= len(self.route):
+            return  # Plus rien à faire
+
+        target = self.route[self.target_index]
+        dx = target[0] - self.position[0]
+        dy = target[1] - self.position[1]
+        distance = math.hypot(dx, dy)
+        
+        # Si le taxi est très proche du waypoint, on considère qu'il l'a atteint
+        if distance < 1:
+            self.position = target
+            self.target_index += 1
+        else:
+            move_distance = TAXI_SPEED * dt
+            if move_distance >= distance:
+                self.position = target
+                self.target_index += 1
+            else:
+                ratio = move_distance / distance
+                self.position = (self.position[0] + dx * ratio, self.position[1] + dy * ratio)
+        
+        # On définit ici isWorking pour l'affichage
+        if self.target_index < len(self.route):
+            self.isWorking = (self.target_index % 2 == 1)
+        else:
+            self.isWorking = False
+
+        # Si le taxi vient de terminer une tâche (c'est-à-dire atteindre une destination)
+        # Comme le chemin est [start, destination, start, destination, ...], dès qu'on a atteint
+        # le second point (indice impair) d'une tâche, on considère cette tâche comme terminée.
+        if self.target_index >= 1 and self.target_index % 2 == 0:
+            # Retirer la première tâche accomplie et recalculer l'itinéraire avec les tâches restantes
+            if self.tasks:
+                self.tasks.pop(0)
+                self.plan_route()
 
 class Simulation:
     """Gère l'environnement, la génération de tâches et l'allocation aux taxis."""
@@ -58,11 +182,11 @@ class Simulation:
         taxi_tmp = deepcopy(taxis)
 
         i = 0
-        # for permutation in all_permutation:
-        #     i+=1
-        #     print(f"Permutation : {i}")
-        #     for t in permutation:
-        #         print(f"Tâche {getattr(t, 'id', 'inconnue')} : départ = {t.start}, destination = {t.destination}")
+        for permutation in all_permutation:
+            i+=1
+            print(f"Permutation : {i}")
+            for t in permutation:
+                print(f"Tâche {getattr(t, 'id', 'inconnue')} : départ = {t.start}, destination = {t.destination}")
 
         best_Permutation = None
         for permutation in all_permutation:
@@ -107,16 +231,16 @@ class Simulation:
 
             longest_route = max(list_estimated_cost) # On récupère le coût le plus long entre les taxis pour avoir le coût de la permutation
 
-            # print(f"Coût de la permutation : {longest_route}")
+            print(f"Coût de la permutation : {longest_route}")
 
             if longest_route < best_allocation_cost: # On compare le coût de la permutation avec le meilleur coût trouvé
                 best_allocation_cost = longest_route
                 best_Permutation = permutation
 
-        # print("MEILLEURE PERMUTATION")
-        # print(f"Meilleur coût : {best_allocation_cost}")
-        # for t in permutation:
-        #     print(f"Tâche {getattr(t, 'id', 'inconnue')} : départ = {t.start}, destination = {t.destination}")
+        print("MEILLEURE PERMUTATION")
+        print(f"Meilleur coût : {best_allocation_cost}")
+        for t in permutation:
+            print(f"Tâche {getattr(t, 'id', 'inconnue')} : départ = {t.start}, destination = {t.destination}")
 
         for task in best_Permutation:
             best_taxi = None
@@ -136,14 +260,14 @@ class Simulation:
                 # Coût pour la nouvelle tâche
                 cost += math.dist(current_pos, task.start) + math.dist(task.start, task.destination)
                 
-                # print(f"Taxi {taxi.id} : coût estimé = {cost:.2f} pour la tâche {getattr(task, 'id', 'inconnue')}")
+                print(f"Taxi {taxi.id} : coût estimé = {cost:.2f} pour la tâche {getattr(task, 'id', 'inconnue')}")
                 
                 if cost < best_estimated_cost:
                     best_estimated_cost = cost
                     best_taxi = taxi
 
 
-            # print(f"=> Affectation de la tâche {getattr(task, 'id', 'inconnue')} au taxi {best_taxi.id} (coût estimé = {best_estimated_cost:.2f})\n")
+            print(f"=> Affectation de la tâche {getattr(task, 'id', 'inconnue')} au taxi {best_taxi.id} (coût estimé = {best_estimated_cost:.2f})\n")
             
             # Affectation de la tâche au taxi choisi (ajout en fin de file d'attente)
             best_taxi.tasks.append(task)
@@ -165,14 +289,11 @@ class Simulation:
                 current_pos = t.destination
             best_taxi.current_route_cost = route_cost
 
-        # for taxi in taxis:
-        #     print(f"taches du taxi {taxi.id} : ")
-        #     for t in taxi.tasks:
-        #         print(f"Tâche {getattr(t, 'id', 'inconnue')} : départ = {t.start}, destination = {t.destination}")
-        #     print(f"Coût total estimé : {taxi.current_route_cost:.2f}\n")
-
-    def __repr__(self):
-        return f"Simulation(width={self.width}, height={self.height}, num_taxis={len(self.taxis)}, task_interval={self.task_interval}, num_tasks_spawn={self.num_tasks_spawn})"
+        for taxi in taxis:
+            print(f"taches du taxi {taxi.id} : ")
+            for t in taxi.tasks:
+                print(f"Tâche {getattr(t, 'id', 'inconnue')} : départ = {t.start}, destination = {t.destination}")
+            print(f"Coût total estimé : {taxi.current_route_cost:.2f}\n")
 
             
 
@@ -195,7 +316,7 @@ class Simulation:
 
     def draw(self, screen):
         """Affiche l'environnement, les trajets planifiés et les taxis."""
-        screen.fill(config.WHITE)  # fond blanc
+        screen.fill((255, 255, 255))  # fond blanc
 
         # Pour chaque taxi, dessiner son itinéraire et sa position
         for taxi in self.taxis:
@@ -205,19 +326,19 @@ class Simulation:
                 for i in range(len(points) - 1):
                     # Vérifier si ce segment correspond à une tâche en cours
                     if taxi.isWorking and i == taxi.target_index - 1 and i % 2 == 0:
-                        line_color = config.ORANGE  # Segment de la tâche active
+                        line_color = ORANGE  # Segment de la tâche active
                     else:
-                        line_color = config.BLACK  # Autres segments
+                        line_color = BLACK  # Autres segments
 
                     pygame.draw.line(screen, line_color, points[i], points[i + 1], 2)
 
                 # Affichage des waypoints : Départ (vert), Destination (bleu)
                 for i, point in enumerate(taxi.route[taxi.target_index:], start=taxi.target_index):
-                    color = config.GREEN if i % 2 == 0 else config.BLUE
+                    color = GREEN if i % 2 == 0 else BLUE
                     pygame.draw.circle(screen, color, (int(point[0]), int(point[1])), 5)
 
             # Dessiner le taxi (cercle rouge) et son identifiant
-            pygame.draw.circle(screen, config.RED, (int(taxi.position[0]), int(taxi.position[1])), 8)
+            pygame.draw.circle(screen, RED, (int(taxi.position[0]), int(taxi.position[1])), 8)
 
             font = pygame.font.SysFont(None, 24)
             text = font.render(str(taxi.id), True, (0, 0, 0))
@@ -233,18 +354,19 @@ class Simulation:
 
         self.paused = not self.paused
 
+
 def main():
     # step = 0
     pygame.init()
-    screen = pygame.display.set_mode((config.WIDTH, config.HEIGHT))
+    screen = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption("Simulation Allocation en ligne de tâches (Partie 1)")
     clock = pygame.time.Clock()
 
-    sim = Simulation(config.WIDTH, config.HEIGHT, config.NUM_TAXIS, config.TASK_INTERVAL, config.NUM_TASKS_SPAWN)
+    sim = Simulation(WIDTH, HEIGHT, NUM_TAXIS, TASK_INTERVAL, NUM_TASKS_SPAWN)
     running = True
 
     while running:
-        dt = clock.tick(config.FPS) / 1000.0  # dt en secondes (60 FPS)
+        dt = clock.tick(60) / 1000.0  # dt en secondes (60 FPS)
         current_time = pygame.time.get_ticks()
 
         for event in pygame.event.get():
