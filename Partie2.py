@@ -24,7 +24,7 @@ def generate_dcop(taxis,tasks, nom):
         f.write("variables: \n")
         for tache in tasks:
             f.write("   ")
-            f.write("Tache "+str(tache.id))
+            f.write("Tache_"+str(tache.id))
             f.write(" : \n")
             f.write("      domain: taxis \n")
         f.write("\n")
@@ -34,7 +34,7 @@ def generate_dcop(taxis,tasks, nom):
         for i in range(len(tasks)):
             f.write(f"   pref_{i+1}: \n")
             f.write("      type: extensional \n")
-            f.write(f"      variables: Tache {tasks[i].id} \n")
+            f.write(f"      variables: Tache_{tasks[i].id} \n")
 
             f.write("      values: \n")
             for j in range(len(taxis)):
@@ -45,18 +45,18 @@ def generate_dcop(taxis,tasks, nom):
         for i in range(len(tasks)):
             for j in range(len(tasks)):
                 if i<j:
-                    f.write(f"   different_Tache {tasks[i].id}_Tache {tasks[j].id}: \n")
+                    f.write(f"   different_Tache_{tasks[i].id}_Tache_{tasks[j].id}: \n")
                     f.write("      type: intention \n")
                     cout=math.dist(tasks[i].destination,tasks[j].start)
-                    f.write(f"      function: {cout} if Tache {tasks[i].id} == Tache {tasks[j].id} else 0 \n")
+                    f.write(f"      function: {cout} if Tache_{tasks[i].id} == Tache_{tasks[j].id} else 0 \n")
                     f.write("\n")
         
         for i in range(len(taxis)):
             f.write(f"   cout_T{taxis[i].id}: \n")
             f.write("      type: intention \n")
-            f.write(f"      function: {math.dist(tasks[0].start, tasks[0].destination)+math.dist(taxis[i].position,tasks[0].start)} if Tache {tasks[0].id} =='T{taxis[i].id}'")
+            f.write(f"      function: {math.dist(tasks[0].start, tasks[0].destination)+math.dist(taxis[i].position,tasks[0].start)} if Tache_{tasks[0].id} =='T{taxis[i].id}'")
             for j in range(1,len(tasks)-1):
-                f.write(f" else {math.dist(tasks[j].start, tasks[j].destination)+math.dist(taxis[i].position, tasks[j].destination)} if Tache {tasks[j].id} =='T{taxis[i].id}'")
+                f.write(f" else {math.dist(tasks[j].start, tasks[j].destination)+math.dist(taxis[i].position, tasks[j].destination)} if Tache_{tasks[j].id} =='T{taxis[i].id}'")
             if len(tasks)>1:
                 f.write(f" else {math.dist(tasks[-1].start, tasks[-1].destination)+math.dist(taxis[i].position, tasks[-1].start)}")
             f.write("\n")
@@ -64,7 +64,7 @@ def generate_dcop(taxis,tasks, nom):
         f.write("\n")
         f.write(f"agents: \n")
         for i in range(len(tasks)):
-            f.write(f"   Tache {tasks[i].id}: \n")
+            f.write(f"   Tache_{tasks[i].id}: \n")
             f.write("      capacity: 1 \n")
 
 
