@@ -1,5 +1,6 @@
 from simulation import *
-
+import subprocess
+import json
 
 def generate_dcop(taxis,tasks, nom):
 
@@ -67,6 +68,26 @@ def generate_dcop(taxis,tasks, nom):
             f.write(f"   Tache_{tasks[i].id}: \n")
             f.write("      capacity: 1 \n")
 
+def solve_dcop(yaml_file):
+    output_file = "results.json"
+    
+    # Exécuter la commande PyDCOP
+    command = ["pydcop", "--output", output_file, "solve", "--algo", "dpop", yaml_file]
+    result = subprocess.run(command, capture_output=True, text=True)
+    
+    # Vérifier si l'exécution s'est bien passée
+    if result.returncode != 0:
+        print("Erreur lors de l'exécution de PyDCOP:", result.stderr)
+        return None
+
+    # Charger les résultats du fichier JSON
+    try:
+        with open(output_file, "r") as f:
+            solution = json.load(f)
+        return solution
+    except Exception as e:
+        print("Erreur lors de la lecture des résultats:", e)
+        return None
 
 
 WIDTH, HEIGHT = 800, 600         # Taille de l'environnement (pixels)
@@ -78,3 +99,10 @@ sim = Simulation(WIDTH, HEIGHT, NUM_TAXIS, TASK_INTERVAL, NUM_TASKS_SPAWN)
 
 tasks=sim.generate_task()
 generate_dcop(sim.taxis,tasks,"test.yaml")
+
+# Exemple d'utilisation
+yaml_file = "test.yaml"
+dcop_solution = solve_dcop(yaml_file)
+
+if dcop_solution:
+    print("Résultats du DCOP:", dcop_solution)
