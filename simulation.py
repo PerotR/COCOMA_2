@@ -8,15 +8,17 @@ from copy import deepcopy
 from taxi import Taxi
 from task import Task
 import config
+#import dcop
 
 class Simulation:
     """Gère l'environnement, la génération de tâches et l'allocation aux taxis."""
-    def __init__(self, width, height, num_taxis, task_interval, num_tasks_spawn):
+    def __init__(self, width, height, num_taxis, task_interval, num_tasks_spawn, resolutionType):
         self.width = width
         self.height = height
         self.taxis = []
         self.num_tasks_spawn = num_tasks_spawn
         self.paused = False
+        self.resolutionType = resolutionType
         for i in range(num_taxis):
             pos = (random.randint(0, width), random.randint(0, height))
             self.taxis.append(Taxi(i, pos))
@@ -37,7 +39,7 @@ class Simulation:
             tasks.append(task)
         return tasks
 
-    def greedy_task_assignment(n, taxis, tasks):
+    def greedy_task_assignment(self, taxis, tasks):
         """
         Affecte chacune des tâches de la liste tasks au taxi le plus proche
         (en tenant compte du temps qu'il met à finir ses tâches déjà assignées).
@@ -171,6 +173,15 @@ class Simulation:
         #         print(f"Tâche {getattr(t, 'id', 'inconnue')} : départ = {t.start}, destination = {t.destination}")
         #     print(f"Coût total estimé : {taxi.current_route_cost:.2f}\n")
 
+    def PSI_task_assignment(self, taxis, tasks):
+        return
+
+    def SSI_task_assignment(self, taxis, tasks):
+        return
+
+    def regret_task_assignment(self, taxis, tasks):
+        return
+
     def __repr__(self):
         return f"Simulation(width={self.width}, height={self.height}, num_taxis={len(self.taxis)}, task_interval={self.task_interval}, num_tasks_spawn={self.num_tasks_spawn})"
 
@@ -186,8 +197,22 @@ class Simulation:
         if not self.paused:
             if current_time - self.last_task_time > self.task_interval:
                 new_tasks = self.generate_task()
-                self.greedy_task_assignment(self.taxis, new_tasks)
-
+                match self.resolutionType:
+                    case "greedy":
+                        self.greedy_task_assignment(self.taxis, new_tasks)
+                    # case "dcop":
+                    #     dcop.generate_dcop(self.taxis, new_tasks, "dcop.yaml")
+                    #     dcop.solve_dcop("dcop.yaml")
+                    case "PSI":
+                        self.PSI_task_assignment(len(self.taxis), self.taxis, new_tasks)
+                    case "SSI":
+                        self.SSI_task_assignment(len(self.taxis), self.taxis, new_tasks)
+                    case "regret":
+                        self.regret_task_assignment(len(self.taxis), self.taxis, new_tasks)
+                    case _:
+                        print("Résolution non reconnue, on utilise greedy")
+                        self.greedy_task_assignment(self.taxis, new_tasks)
+                
                 self.last_task_time = current_time
 
             for taxi in self.taxis:
@@ -233,14 +258,14 @@ class Simulation:
 
         self.paused = not self.paused
 
-def main():
+def main(resolutionType):
     # step = 0
     pygame.init()
     screen = pygame.display.set_mode((config.WIDTH, config.HEIGHT))
     pygame.display.set_caption("Simulation Allocation en ligne de tâches (Partie 1)")
     clock = pygame.time.Clock()
 
-    sim = Simulation(config.WIDTH, config.HEIGHT, config.NUM_TAXIS, config.TASK_INTERVAL, config.NUM_TASKS_SPAWN)
+    sim = Simulation(config.WIDTH, config.HEIGHT, config.NUM_TAXIS, config.TASK_INTERVAL, config.NUM_TASKS_SPAWN, resolutionType)
     print(sim)
     running = True
 
@@ -265,4 +290,4 @@ def main():
     sys.exit()
 
 if __name__ == "__main__":
-    main()
+    main(resolutionType="greedy")
