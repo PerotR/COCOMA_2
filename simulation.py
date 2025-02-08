@@ -9,6 +9,8 @@ from taxi import Taxi
 from task import Task
 import config
 #import dcop
+import subprocess
+import json
 
 class Simulation:
     """Gère l'environnement, la génération de tâches et l'allocation aux taxis."""
@@ -173,6 +175,124 @@ class Simulation:
         #         print(f"Tâche {getattr(t, 'id', 'inconnue')} : départ = {t.start}, destination = {t.destination}")
         #     print(f"Coût total estimé : {taxi.current_route_cost:.2f}\n")
 
+
+    def generate_dcop(taxis,tasks, nom):
+
+        with open(nom,"w") as f:
+            f.write("name: Allocation en ligne de taches \n")
+            f.write("objective: min \n")
+            f.write("\n")
+
+            #Ecriture des domaines dans le fichier yaml
+            f.write("domains: \n")
+            f.write("   taxis: \n" )
+            f.write("      values: ")
+            f.write("[")
+            for i in range(len(taxis)):
+                f.write("T"+str(taxis[i].id))
+                if i<len(taxis)-1:
+                    f.write(",")
+            f.write("]\n")
+            f.write("\n")
+
+            #Ecriture des variables dans le fichier yaml
+            f.write("variables: \n")
+            for tache in tasks:
+                f.write("   ")
+                f.write("Tache_"+str(tache.id))
+                f.write(" : \n")
+                f.write("      domain: taxis \n")
+            f.write("\n")
+
+
+            f.write("constraints: \n")
+            for i in range(len(tasks)):
+                f.write(f"   pref_{i+1}: \n")
+                f.write("      type: extensional \n")
+                f.write(f"      variables: Tache_{tasks[i].id} \n")
+
+                f.write("      values: \n")
+                for j in range(len(taxis)):
+                    f.write(f"         {j+1}: T{taxis[j].id} \n")
+
+                f.write("\n")
+            
+            for i in range(len(tasks)):
+                for j in range(len(tasks)):
+                    if i<j:
+                        f.write(f"   different_Tache_{tasks[i].id}_Tache_{tasks[j].id}: \n")
+                        f.write("      type: intention \n")
+                        cout=math.dist(tasks[i].destination,tasks[j].start)
+                        f.write(f"      function: {cout} if Tache_{tasks[i].id} == Tache_{tasks[j].id} else 0 \n")
+                        f.write("\n")
+            
+            for i in range(len(taxis)):
+                f.write(f"   cout_T{taxis[i].id}: \n")
+                f.write("      type: intention \n")
+                f.write(f"      function: {math.dist(tasks[0].start, tasks[0].destination)+math.dist(taxis[i].position,tasks[0].start)} if Tache_{tasks[0].id} =='T{taxis[i].id}'")
+                for j in range(1,len(tasks)-1):
+                    f.write(f" else {math.dist(tasks[j].start, tasks[j].destination)+math.dist(taxis[i].position, tasks[j].destination)} if Tache_{tasks[j].id} =='T{taxis[i].id}'")
+                if len(tasks)>1:
+                    f.write(f" else {math.dist(tasks[-1].start, tasks[-1].destination)+math.dist(taxis[i].position, tasks[-1].start)}")
+                f.write("\n")
+            
+            f.write("\n")
+            f.write(f"agents: \n")
+            for i in range(len(tasks)):
+                f.write(f"   Tache_{tasks[i].id}: \n")
+                f.write("      capacity: 1 \n")
+
+    def solve_dcop(yaml_file):
+        output_file = "results.json"
+        
+        # Exécuter la commande PyDCOP
+        command = ["pydcop", "--output", output_file, "solve", "--algo", "dpop", yaml_file]
+        result = subprocess.run(command, capture_output=True, text=True)
+        
+        # Vérifier si l'exécution s'est bien passée
+        if result.returncode != 0:
+            print("Erreur lors de l'exécution de PyDCOP:", result.stderr)
+            return None
+
+        # Charger les résultats du fichier JSON
+        try:
+            with open(output_file, "r") as f:
+                solution = json.load(f)
+            return solution
+        except Exception as e:
+            print("Erreur lors de la lecture des résultats:", e)
+            return None
+        
+    def attribution_dcop(self,tasks, taxis, res):
+
+        for task_key, taxi_id in res.items():
+            # Trouver la tâche correspondante par son nom (par exemple, 'Tache_0')
+            task = next((t for t in tasks if t.id == int(task_key.split('_')[1])), None)
+            
+            # Trouver le taxi correspondant
+            taxi = next((t for t in taxis if t.id == int(taxi_id.split('T')[1])), None)
+
+            if task and taxi:
+                taxi.tasks.append(task)
+                taxi.tasks.append(task)
+            
+                # Mise à jour de l'itinéraire du taxi en mode FIFO :
+                # Si le taxi n'avait pas d'itinéraire (pas de tâches en attente), on le crée.
+                # Sinon, on ajoute simplement les deux points (start et destination) à la suite.
+                if not taxi.route:
+                    taxi.route = [task.start, task.destination]
+                    taxi.target_index = 0
+                else:
+                    taxi.route.extend([task.start, task.destination])
+                
+                # On peut aussi mettre à jour le coût total estimé de la file (pour information)
+                current_pos = taxi.position
+                route_cost = 0.0
+                for t in taxi.tasks:
+                    route_cost += math.dist(current_pos, t.start) + math.dist(t.start, t.destination)
+                    current_pos = t.destination
+                taxi.current_route_cost = route_cost
+
     def PSI_task_assignment(self, taxis, tasks):
         return
 
@@ -200,9 +320,10 @@ class Simulation:
                 match self.resolutionType:
                     case "greedy":
                         self.greedy_task_assignment(self.taxis, new_tasks)
-                    # case "dcop":
-                    #     dcop.generate_dcop(self.taxis, new_tasks, "dcop.yaml")
-                    #     dcop.solve_dcop("dcop.yaml")
+                    case "dcop":
+                        self.generate_dcop(self.taxis, new_tasks, "dcop.yaml")
+                        allocation=self.solve_dcop("dcop.yaml")
+                        self.attribution_dcop(new_tasks, self.taxis, allocation['assignment'])
                     case "PSI":
                         self.PSI_task_assignment(len(self.taxis), self.taxis, new_tasks)
                     case "SSI":
@@ -276,8 +397,11 @@ def main(resolutionType):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-            elif event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
-                sim.toggle_pause()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    sim.toggle_pause()
+                elif event.key == pygame.K_ESCAPE:  # Raccourci clavier pour arrêter
+                    running = False
 
         sim.update(current_time, dt)
         sim.draw(screen)

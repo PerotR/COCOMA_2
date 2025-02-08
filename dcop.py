@@ -88,6 +88,22 @@ def solve_dcop(yaml_file):
     except Exception as e:
         print("Erreur lors de la lecture des résultats:", e)
         return None
+    
+def attribution_dcop(tasks, taxis, res):
+
+    for task_key, taxi_id in res.items():
+        # Trouver la tâche correspondante par son nom (par exemple, 'Tache_0')
+        task = next((t for t in tasks if t.id == int(task_key.split('_')[1])), None)
+        
+        # Trouver le taxi correspondant
+        taxi = next((t for t in taxis if t.id == int(taxi_id.split('T')[1])), None)
+
+        if task and taxi:
+            taxi.tasks.append(task)
+
+
+    
+    
 
 
 WIDTH, HEIGHT = 800, 600         # Taille de l'environnement (pixels)
@@ -95,14 +111,19 @@ NUM_TAXIS = 2                    # Nombre de taxis
 TASK_INTERVAL = 10000             # Intervalle de génération d'une nouvelle tâche en millisecondes
 TAXI_SPEED = 100                 # Vitesse du taxi (pixels par seconde)
 NUM_TASKS_SPAWN = 5  
-sim = Simulation(WIDTH, HEIGHT, NUM_TAXIS, TASK_INTERVAL, NUM_TASKS_SPAWN)
+sim = Simulation(WIDTH, HEIGHT, NUM_TAXIS, TASK_INTERVAL, NUM_TASKS_SPAWN,'greedy')
 
 tasks=sim.generate_task()
-generate_dcop(sim.taxis,tasks,"test.yaml")
+#generate_dcop(sim.taxis,tasks,"test.yaml")
 
 # Exemple d'utilisation
 yaml_file = "test.yaml"
-dcop_solution = solve_dcop(yaml_file)
+#dcop_solution = solve_dcop(yaml_file)
 
-if dcop_solution:
-    print("Résultats du DCOP:", dcop_solution['assignment'])
+res={'Tache_0': 'T0', 'Tache_1': 'T1', 'Tache_2': 'T0', 'Tache_3': 'T1', 'Tache_4': 'T1'}
+
+ress=attribution(tasks,sim.taxis,res)
+print(ress)
+
+# if dcop_solution:
+#     print("Résultats du DCOP:", dcop_solution['assignment'])
