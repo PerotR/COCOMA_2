@@ -12,16 +12,15 @@ class Taxi:
         self.target_index = 0       # Indice du waypoint courant dans self.route
         self.current_route_cost = 0 # Coût total du chemin planifié
         self.isWorking = False      # ici on recupere pour l'affichage si le taxi est entre le depart et la destination d'une tache ou si il va vers le depart d'une tache
-        self.total_route_cost = 0   # Coût total du chemin planifié
 
     def calculate_total_route_cost(self): 
         """On calcule le coût total du chemin planifié, 
         je l'ai utilisé pour la fonction greedy_task_assignment, 
         pour avoir accès au coût total de chaque taxi sans faire plan_route"""
-        self.total_route_cost = 0
+        self.current_route_cost = 0
         pos = self.position
         for task in self.tasks:
-            self.total_route_cost += math.dist(pos, task.start) + math.dist(task.start, task.destination)
+            self.current_route_cost += math.dist(pos, task.start) + math.dist(task.start, task.destination)
             pos = task.destination
 
 
@@ -62,6 +61,7 @@ class Taxi:
             self.route.append(task.start)
             self.route.append(task.destination)
         self.target_index = 0
+
 
     def add_task(self, task):
         """Ajoute une tâche à la liste et recalcule le planning."""

@@ -1,0 +1,121 @@
+name: Allocation en ligne de taches 
+objective: min 
+
+domains: 
+   taxis: 
+      values: [T0,T1,T2]
+
+variables: 
+   Tache_0 : 
+      domain: taxis 
+   Tache_1 : 
+      domain: taxis 
+   Tache_2 : 
+      domain: taxis 
+   Tache_3 : 
+      domain: taxis 
+   Tache_4 : 
+      domain: taxis 
+
+constraints: 
+   pref_1: 
+      type: extensional 
+      variables: Tache_0 
+      values: 
+         1: T0 
+         2: T1 
+         3: T2 
+
+   pref_2: 
+      type: extensional 
+      variables: Tache_1 
+      values: 
+         1: T0 
+         2: T1 
+         3: T2 
+
+   pref_3: 
+      type: extensional 
+      variables: Tache_2 
+      values: 
+         1: T0 
+         2: T1 
+         3: T2 
+
+   pref_4: 
+      type: extensional 
+      variables: Tache_3 
+      values: 
+         1: T0 
+         2: T1 
+         3: T2 
+
+   pref_5: 
+      type: extensional 
+      variables: Tache_4 
+      values: 
+         1: T0 
+         2: T1 
+         3: T2 
+
+   different_Tache_0_Tache_1: 
+      type: intention 
+      function: 456.88510590738235 if Tache_0 == Tache_1 else 0 
+
+   different_Tache_0_Tache_2: 
+      type: intention 
+      function: 27.018512172212592 if Tache_0 == Tache_2 else 0 
+
+   different_Tache_0_Tache_3: 
+      type: intention 
+      function: 315.2966856787429 if Tache_0 == Tache_3 else 0 
+
+   different_Tache_0_Tache_4: 
+      type: intention 
+      function: 52.49761899362675 if Tache_0 == Tache_4 else 0 
+
+   different_Tache_1_Tache_2: 
+      type: intention 
+      function: 435.332057170156 if Tache_1 == Tache_2 else 0 
+
+   different_Tache_1_Tache_3: 
+      type: intention 
+      function: 155.76905982896602 if Tache_1 == Tache_3 else 0 
+
+   different_Tache_1_Tache_4: 
+      type: intention 
+      function: 422.0426518730068 if Tache_1 == Tache_4 else 0 
+
+   different_Tache_2_Tache_3: 
+      type: intention 
+      function: 50.32891812864648 if Tache_2 == Tache_3 else 0 
+
+   different_Tache_2_Tache_4: 
+      type: intention 
+      function: 234.01922997907673 if Tache_2 == Tache_4 else 0 
+
+   different_Tache_3_Tache_4: 
+      type: intention 
+      function: 226.00884938426637 if Tache_3 == Tache_4 else 0 
+
+   cout_T0: 
+      type: intention 
+      function: 729.6536569856189 if Tache_0 =='T0' else 413.3011783032474 if Tache_1 =='T0' else 454.0294270572307 if Tache_2 =='T0' else 837.2530417998835 if Tache_3 =='T0' else 700.3711057012852
+   cout_T1: 
+      type: intention 
+      function: 411.2280058799404 if Tache_0 =='T1' else 422.99453752964394 if Tache_1 =='T1' else 440.9938287059131 if Tache_2 =='T1' else 596.3850211251314 if Tache_3 =='T1' else 690.3711075539434
+   cout_T2: 
+      type: intention 
+      function: 837.0860172167631 if Tache_0 =='T2' else 442.10034717520904 if Tache_1 =='T2' else 560.1113433124524 if Tache_2 =='T2' else 959.255707886982 if Tache_3 =='T2' else 828.7721279990668
+
+agents: 
+   Tache_0: 
+      capacity: 1 
+   Tache_1: 
+      capacity: 1 
+   Tache_2: 
+      capacity: 1 
+   Tache_3: 
+      capacity: 1 
+   Tache_4: 
+      capacity: 1 

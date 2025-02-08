@@ -107,7 +107,7 @@ class Simulation:
                 # for t in taxi.tasks:
                 #     print(f"Tâche {getattr(t, 'id', 'inconnue')} : départ = {t.start}, destination = {t.destination}")
                 taxi.calculate_total_route_cost()
-                list_estimated_cost.append(taxi.total_route_cost)
+                list_estimated_cost.append(taxi.current_route_cost)
 
             longest_route = max(list_estimated_cost) # On récupère le coût le plus long entre les taxis pour avoir le coût de la permutation
 
@@ -176,7 +176,7 @@ class Simulation:
         #     print(f"Coût total estimé : {taxi.current_route_cost:.2f}\n")
 
 
-    def generate_dcop(taxis,tasks, nom):
+    def generate_dcop(self, taxis,tasks, nom):
 
         with open(nom,"w") as f:
             f.write("name: Allocation en ligne de taches \n")
@@ -242,7 +242,7 @@ class Simulation:
                 f.write(f"   Tache_{tasks[i].id}: \n")
                 f.write("      capacity: 1 \n")
 
-    def solve_dcop(yaml_file):
+    def solve_dcop(self, yaml_file):
         output_file = "results.json"
         
         # Exécuter la commande PyDCOP
@@ -296,8 +296,56 @@ class Simulation:
     def PSI_task_assignment(self, taxis, tasks):
         return
 
+    def insertion_heuristic(self, taxi, task):
+        """simule l'insertion d'une tâche dans la liste des tâches d'un taxi"""
+
+        if not taxi.tasks:
+            return math.dist(taxi.position, task.start) + math.dist(task.start, task.destination), 0
+        
+
+        best_cost_with_insertion = float('inf')
+        best_index = 0
+
+        for pos in range(len(taxi.tasks) + 1):
+            candidate_tasks = deepcopy(taxi.tasks)
+            candidate_tasks.insert(pos, task)
+            cost = 0
+            pos_point = taxi.position
+            for t in candidate_tasks:
+                cost += math.dist(pos_point, t.start) + math.dist(t.start, t.destination)
+                pos_point = t.destination
+            if cost < best_cost_with_insertion:
+                best_cost_with_insertion = cost
+                best_index = pos
+        
+        taxi.calculate_total_route_cost()
+        gap_cost = best_cost_with_insertion - taxi.current_route_cost
+
+        return gap_cost, best_index
+
+
+
     def SSI_task_assignment(self, taxis, tasks):
-        return
+        """Enchères sequentielles, où les offres sont réalisées itérativement sur les items"""
+        bid = 0
+        index = 0
+
+        for task in tasks:
+            best_taxi = None
+            best_bid = float('inf')
+            for taxi in taxis:
+                bid, index = self.insertion_heuristic(taxi, task)
+                print(f"Taxi {taxi.id} : coût marginal pour la tâche {task.id} = {bid:.2f}")
+                if bid < best_bid:
+                    best_bid = bid
+                    best_taxi = taxi          
+            
+            best_taxi.tasks.insert(index, task)
+            best_taxi.plan_route()
+
+            best_taxi.calculate_total_route_cost()
+            print(f"=> Tâche {task.id} attribuée au taxi {best_taxi.id} (coût marginal = {best_bid:.2f})\n")
+
 
     def regret_task_assignment(self, taxis, tasks):
         return
