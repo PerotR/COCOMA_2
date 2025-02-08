@@ -105,4 +105,4 @@ yaml_file = "test.yaml"
 dcop_solution = solve_dcop(yaml_file)
 
 if dcop_solution:
-    print("Résultats du DCOP:", dcop_solution)
+    print("Résultats du DCOP:", dcop_solution['assignment'])
