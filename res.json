@@ -1,0 +1,17 @@
+[
+    {
+        "resolutionType": "greedy",
+        "time": 73.234,
+        "nombre de tache": 5
+    },
+    {
+        "resolutionType": "greedy",
+        "time": 72.779,
+        "nombre de tache": 6
+    },
+    {
+        "resolutionType": "greedy",
+        "time": 84.786,
+        "nombre de tache": 7
+    }
+]

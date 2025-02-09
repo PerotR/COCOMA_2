@@ -7,12 +7,15 @@ class Taxi:
     def __init__(self, id, position):
         self.id = id                 # Identifiant unique du taxi
         self.position = position     # Position actuelle (x, y)
-        self.tasks = []              # Liste des tâches attribuées (dans l'ordre optimal)
-        self.route = []              # Liste des points (waypoints) à suivre, calculée par plan_route()
+        self.tasks = []              # Liste des tâches attribuées (dans l'ordre optimal), self.tasks = [task1, task2, ...]
+        self.route = []              # Liste des points (waypoints) à suivre, calculée par plan_route(), self.route = [start, destination, start, destination, ...]
         self.target_index = 0        # Indice du waypoint courant dans self.route
         self.current_route_cost = 0  # Coût total du chemin planifié
         self.isWorking = False       # ici on recupere pour l'affichage si le taxi est entre le depart et la destination d'une tache ou si il va vers le depart d'une tache
         self.allow_reordering = True # On permet de réordonner les tâches par défaut avec plan_route()
+
+        
+        
 
     def calculate_total_route_cost(self): 
         """On calcule le coût total du chemin planifié, 
