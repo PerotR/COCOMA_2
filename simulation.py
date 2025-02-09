@@ -229,11 +229,11 @@ class Simulation:
             for i in range(len(taxis)):
                 f.write(f"   cout_T{taxis[i].id}: \n")
                 f.write("      type: intention \n")
-                f.write(f"      function: {math.dist(tasks[0].start, tasks[0].destination)+math.dist(taxis[i].position,tasks[0].start)} if Tache_{tasks[0].id} =='T{taxis[i].id}'")
+                f.write(f"      function: {math.dist(tasks[0].start, tasks[0].destination)+(math.dist(taxis[i].position,tasks[0].start)if not taxis[i].isWorking else math.dist(taxis[i].tasks[taxis[i].target_index//2].destination,tasks[0].start))} if Tache_{tasks[0].id} =='T{taxis[i].id}'")
                 for j in range(1,len(tasks)-1):
-                    f.write(f" else {math.dist(tasks[j].start, tasks[j].destination)+math.dist(taxis[i].position, tasks[j].destination)} if Tache_{tasks[j].id} =='T{taxis[i].id}'")
+                    f.write(f" else {math.dist(tasks[j].start, tasks[j].destination)+(math.dist(taxis[i].position,tasks[j].start)if not taxis[i].isWorking else math.dist(taxis[i].tasks[taxis[i].target_index//2].destination,tasks[j].start))} if Tache_{tasks[j].id} =='T{taxis[i].id}'")
                 if len(tasks)>1:
-                    f.write(f" else {math.dist(tasks[-1].start, tasks[-1].destination)+math.dist(taxis[i].position, tasks[-1].start)}")
+                    f.write(f" else {math.dist(tasks[-1].start, tasks[-1].destination)+(math.dist(taxis[i].position,tasks[-1].start)if not taxis[i].isWorking else math.dist(taxis[i].tasks[taxis[i].target_index//2].destination,tasks[-1].start))}")
                 f.write("\n")
             
             f.write("\n")
@@ -273,7 +273,6 @@ class Simulation:
             taxi = next((t for t in taxis if t.id == int(taxi_id.split('T')[1])), None)
 
             if task and taxi:
-                taxi.tasks.append(task)
                 taxi.tasks.append(task)
             
                 # Mise à jour de l'itinéraire du taxi en mode FIFO :
@@ -438,6 +437,17 @@ class Simulation:
                     case _:
                         print("Résolution non reconnue, on utilise greedy")
                         self.greedy_task_assignment(self.taxis, new_tasks)
+
+                #Pour python 3.8
+                # if self.resolutionType== "greedy":
+                #     self.greedy_task_assignment(self.taxis, new_tasks)
+                # elif self.resolutionType=="dcop":
+                #     self.generate_dcop(self.taxis, new_tasks, "dcop.yaml")
+                #     self.toggle_pause()
+                #     allocation=self.solve_dcop("dcop.yaml")
+                #     print(allocation['assignment'])
+                #     self.attribution_dcop(new_tasks, self.taxis, allocation['assignment'])
+                #     self.toggle_pause()
                 
                 self.last_task_time = current_time
 
