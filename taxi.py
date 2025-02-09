@@ -5,13 +5,14 @@ import config
 class Taxi:
     """Un taxi qui se déplace dans l'environnement et exécute des tâches."""
     def __init__(self, id, position):
-        self.id = id                # Identifiant unique du taxi
-        self.position = position    # Position actuelle (x, y)
-        self.tasks = []             # Liste des tâches attribuées (dans l'ordre optimal)
-        self.route = []             # Liste des points (waypoints) à suivre, calculée par plan_route()
-        self.target_index = 0       # Indice du waypoint courant dans self.route
-        self.current_route_cost = 0 # Coût total du chemin planifié
-        self.isWorking = False      # ici on recupere pour l'affichage si le taxi est entre le depart et la destination d'une tache ou si il va vers le depart d'une tache
+        self.id = id                 # Identifiant unique du taxi
+        self.position = position     # Position actuelle (x, y)
+        self.tasks = []              # Liste des tâches attribuées (dans l'ordre optimal)
+        self.route = []              # Liste des points (waypoints) à suivre, calculée par plan_route()
+        self.target_index = 0        # Indice du waypoint courant dans self.route
+        self.current_route_cost = 0  # Coût total du chemin planifié
+        self.isWorking = False       # ici on recupere pour l'affichage si le taxi est entre le depart et la destination d'une tache ou si il va vers le depart d'une tache
+        self.allow_reordering = True # On permet de réordonner les tâches par défaut avec plan_route()
 
     def calculate_total_route_cost(self): 
         """On calcule le coût total du chemin planifié, 
@@ -62,6 +63,21 @@ class Taxi:
             self.route.append(task.destination)
         self.target_index = 0
 
+    def build_route_from_current_tasks(self):
+        """Construit la route selon l'ordre actuel des tâches (sans permutations)."""
+
+        self.route = []
+        current_pos = self.position
+        self.current_route_cost = 0
+        
+        for task in self.tasks:
+            self.route.append(task.start)
+            self.route.append(task.destination)
+            self.current_route_cost += math.dist(current_pos, task.start) + math.dist(task.start, task.destination)
+            current_pos = task.destination
+        
+        self.target_index = 0
+
 
     def add_task(self, task):
         """Ajoute une tâche à la liste et recalcule le planning."""
@@ -107,7 +123,11 @@ class Taxi:
             # Retirer la première tâche accomplie et recalculer l'itinéraire avec les tâches restantes
             if self.tasks:
                 self.tasks.pop(0)
-                self.plan_route()
+                if self.allow_reordering:
+                    self.plan_route()
+                else:
+                    self.build_route_from_current_tasks()
+                    
 
     
     def __repr__(self):

@@ -299,6 +299,10 @@ class Simulation:
     def insertion_heuristic(self, taxi, task):
         """simule l'insertion d'une tâche dans la liste des tâches d'un taxi"""
 
+        taxi.calculate_total_route_cost()
+        current_route_cost = taxi.current_route_cost
+
+
         if not taxi.tasks:
             return math.dist(taxi.position, task.start) + math.dist(task.start, task.destination), 0
         
@@ -317,10 +321,12 @@ class Simulation:
             if cost < best_cost_with_insertion:
                 best_cost_with_insertion = cost
                 best_index = pos
-        
-        taxi.calculate_total_route_cost()
-        gap_cost = best_cost_with_insertion - taxi.current_route_cost
 
+        gap_cost = best_cost_with_insertion - current_route_cost
+
+        print(f"tache {task.id} insérée au taxi {taxi.id} à la position {best_index} avec un coût de {gap_cost:.2f}")
+
+        
         return gap_cost, best_index
 
 
@@ -335,20 +341,71 @@ class Simulation:
             best_bid = float('inf')
             for taxi in taxis:
                 bid, index = self.insertion_heuristic(taxi, task)
-                print(f"Taxi {taxi.id} : coût marginal pour la tâche {task.id} = {bid:.2f}")
+                # print(f"Taxi {taxi.id} : coût marginal pour la tâche {task.id} = {bid:.2f}")
                 if bid < best_bid:
                     best_bid = bid
-                    best_taxi = taxi          
+                    best_taxi = taxi 
+                    best_index = index         
             
-            best_taxi.tasks.insert(index, task)
-            best_taxi.plan_route()
+            if best_taxi:
+                best_taxi.tasks.insert(best_index, task)
+                best_taxi.allow_reordering = False
+                best_taxi.build_route_from_current_tasks()
+                # print(f"=> Tâche {task.id} attribuée au taxi {best_taxi.id} (coût marginal = {best_bid:.2f})\n")
 
-            best_taxi.calculate_total_route_cost()
-            print(f"=> Tâche {task.id} attribuée au taxi {best_taxi.id} (coût marginal = {best_bid:.2f})\n")
 
+    def calculate_regret(self, taxis, tasks):
+        """Calcul du regret pour chaque tâche"""
+
+        task_regrets = [] # Liste de la forme [(task1, regret1)...]
+        for task in tasks:
+            bids = [] # Liste de la forme [(bid1, taxi_id1)...]
+            for taxi in taxis:
+                bid, _ = self.insertion_heuristic(taxi, task)
+                bids.append((bid, taxi.id))
+                
+            bids.sort(key=lambda x: x[0]) # Tri par coût croissant
+
+            if len(bids) > 1:
+                best_bid, second_best_bid = bids[0][0], bids[1][0]
+                regret = second_best_bid - best_bid
+            else:
+                regret = float('inf')
+
+            task_regrets.append((task, regret))
+
+        task_regrets.sort(key=lambda x: -x[1]) # Tri par regret décroissant
+
+        print("Tâches triées par regret décroissant :")
+        for tr in task_regrets:
+            print(f"Tâche {tr[0].id} : regret = {tr[1]:.2f}")
+
+        return [tr[0] for tr in task_regrets] # On retourne seulement les tâches dans l'ordre décroissant des regrets
 
     def regret_task_assignment(self, taxis, tasks):
-        return
+
+        ordered_tasks = self.calculate_regret(taxis, tasks)
+
+        for task in ordered_tasks:
+            best_taxi = None
+            best_bid = float('inf')
+            best_index = 0
+
+            for taxi in taxis:
+                bid, index = self.insertion_heuristic(taxi, task)
+                if bid < best_bid:
+                    best_bid = bid
+                    best_taxi = taxi
+                    best_index = index
+            
+            if best_taxi:
+                best_taxi.tasks.insert(best_index, task)
+                best_taxi.allow_reordering = False
+                if not best_taxi.isWorking:
+                    best_taxi.build_route_from_current_tasks()
+
+                    
+                print(f"=> Tâche {task.id} attribuée au taxi {best_taxi.id} (coût marginal = {best_bid:.2f})\n")
 
     def __repr__(self):
         return f"Simulation(width={self.width}, height={self.height}, num_taxis={len(self.taxis)}, task_interval={self.task_interval}, num_tasks_spawn={self.num_tasks_spawn})"
@@ -373,11 +430,11 @@ class Simulation:
                         allocation=self.solve_dcop("dcop.yaml")
                         self.attribution_dcop(new_tasks, self.taxis, allocation['assignment'])
                     case "PSI":
-                        self.PSI_task_assignment(len(self.taxis), self.taxis, new_tasks)
+                        self.PSI_task_assignment(self.taxis, new_tasks)
                     case "SSI":
-                        self.SSI_task_assignment(len(self.taxis), self.taxis, new_tasks)
+                        self.SSI_task_assignment(self.taxis, new_tasks)
                     case "regret":
-                        self.regret_task_assignment(len(self.taxis), self.taxis, new_tasks)
+                        self.regret_task_assignment(self.taxis, new_tasks)
                     case _:
                         print("Résolution non reconnue, on utilise greedy")
                         self.greedy_task_assignment(self.taxis, new_tasks)
@@ -409,6 +466,13 @@ class Simulation:
                 for i, point in enumerate(taxi.route[taxi.target_index:], start=taxi.target_index):
                     color = config.GREEN if i % 2 == 0 else config.BLUE
                     pygame.draw.circle(screen, color, (int(point[0]), int(point[1])), 5)
+                    # if i % 2 == 0:
+                    #     task_index = i // 2
+                    #     if task_index < len(taxi.tasks):
+                    #         task = taxi.tasks[task_index]
+                    #         font = pygame.font.SysFont(None, 20)
+                    #         text = font.render(f"Task {task.id}", True, config.BLACK)                            
+                    #         screen.blit(text, (task.start[0] - 10, task.start[1] - 20))
 
             # Dessiner le taxi (cercle rouge) et son identifiant
             pygame.draw.circle(screen, config.RED, (int(taxi.position[0]), int(taxi.position[1])), 8)
@@ -462,4 +526,4 @@ def main(resolutionType):
     sys.exit()
 
 if __name__ == "__main__":
-    main(resolutionType="greedy")
+    main(resolutionType="regret")
