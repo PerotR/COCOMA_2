@@ -253,9 +253,9 @@ class Simulation:
         if self.algo == "dpop":
             command = ["pydcop", "--output", output_file, "solve", "--algo", "dpop", yaml_file]
         if self.algo == "dsa":
-            command = ["pydcop", "--output", output_file,"--timeout","2", "solve", "--algo", "dsa", yaml_file]
+            command = ["pydcop", "--output", output_file,"--timeout","1", "solve", "--algo", "dsa", yaml_file]
         if self.algo == "mgm":
-            command = ["pydcop", "--output", output_file,"--timeout", "2", "solve", "--algo", "mgm",  yaml_file]
+            command = ["pydcop", "--output", output_file,"--timeout", "1", "solve", "--algo", "mgm",  yaml_file]
 
         result = subprocess.run(command, capture_output=True, text=True)
         
@@ -474,9 +474,6 @@ class Simulation:
                         print("Résolution non reconnue, on utilise greedy")
                         self.greedy_task_assignment(self.taxis, new_tasks)
                     
-                mean_cost = sum([taxi.current_route_cost for taxi in self.taxis]) / len(self.taxis)
-                self.mean_route_cost.append(mean_cost)
-
                 #Pour python 3.8 pour DCOP
                 # if self.resolutionType== "greedy":
                 #     self.greedy_task_assignment(self.taxis, new_tasks)
@@ -486,7 +483,9 @@ class Simulation:
                     
                 #         allocation=self.solve_dcop("dcop.yaml")
                 #         self.attribution_dcop(new_tasks, self.taxis, allocation['assignment'])
-                    
+                
+                mean_cost = sum([taxi.current_route_cost for taxi in self.taxis]) / len(self.taxis)
+                self.mean_route_cost.append(mean_cost)
                 
                 self.last_task_time = current_time
 
@@ -700,16 +699,18 @@ def plot_dcop_results(type_eval):
 
 
 if __name__ == "__main__":
-    print("Simulation avec l'algorithme greedy")   
-    main(resolutionType="greedy", isPenalty=False, random_task=False, algo="none")
-    print("Simulation avec l'algorithme PSI")
-    main(resolutionType="PSI", isPenalty=False, random_task=False, algo="none")
-    print("Simulation avec l'algorithme SSI")
-    main(resolutionType="SSI", isPenalty=False, random_task=False, algo="none")
-    print("Simulation avec l'algorithme regret")
-    main(resolutionType="regret", isPenalty=False, random_task=False, algo="none")
-    sys.exit()
+    # print("Simulation avec l'algorithme greedy")   
+    # main(resolutionType="greedy", isPenalty=True, random_task=False, algo="none")
+    # print("Simulation avec l'algorithme PSI")
+    # main(resolutionType="PSI", isPenalty=True, random_task=False, algo="none")
+    # print("Simulation avec l'algorithme SSI")
+    # main(resolutionType="SSI", isPenalty=True, random_task=False, algo="none")
+    # print("Simulation avec l'algorithme regret")
+    # main(resolutionType="regret", isPenalty=True, random_task=False, algo="none")
+    
     # plot_results("time")
     # plot_results("cost")
-     
+    # plot_dcop_results("time")
+    # plot_dcop_results("cost")
+    sys.exit()
 

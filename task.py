@@ -1,4 +1,3 @@
-
 class Task:
     """Représente une tâche (trajet) avec un id, un point de départ et une destination."""
     def __init__(self, start, destination, id=None):
