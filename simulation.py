@@ -167,6 +167,19 @@ class Simulation:
                 current_pos = t.destination
             best_taxi.current_route_cost = route_cost
 
+    def cost_dcop(self, taxi, task):
+        cost=100000000000
+        if taxi.isWorking:
+            cost = math.dist(task.start, task.destination)+math.dist(taxi.tasks[taxi.target_index//2].destination,task.start)
+            return cost
+        
+        else:
+            cost= math.dist(task.start, task.destination)+math.dist(taxi.position,task.start)
+            for ta in taxi.tasks:
+                cost = min(cost,(math.dist(task.start, task.destination)+math.dist(ta.destination,task.start)))
+            return cost
+
+
 
     def generate_dcop(self, taxis,tasks, nom):
 
@@ -221,11 +234,11 @@ class Simulation:
             for i in range(len(taxis)):
                 f.write(f"   cout_T{taxis[i].id}: \n")
                 f.write("      type: intention \n")
-                f.write(f"      function: {math.dist(tasks[0].start, tasks[0].destination)+(math.dist(taxis[i].position,tasks[0].start)if not taxis[i].isWorking else math.dist(taxis[i].tasks[taxis[i].target_index//2].destination,tasks[0].start))} if Tache_{tasks[0].id} =='T{taxis[i].id}'")
+                f.write(f"      function: {self.cost_dcop(taxis[i],tasks[0])} if Tache_{tasks[0].id} =='T{taxis[i].id}'")
                 for j in range(1,len(tasks)-1):
-                    f.write(f" else {math.dist(tasks[j].start, tasks[j].destination)+(math.dist(taxis[i].position,tasks[j].start)if not taxis[i].isWorking else math.dist(taxis[i].tasks[taxis[i].target_index//2].destination,tasks[j].start))} if Tache_{tasks[j].id} =='T{taxis[i].id}'")
+                    f.write(f" else {self.cost_dcop(taxis[i],tasks[j])} if Tache_{tasks[j].id} =='T{taxis[i].id}'")
                 if len(tasks)>1:
-                    f.write(f" else {math.dist(tasks[-1].start, tasks[-1].destination)+(math.dist(taxis[i].position,tasks[-1].start)if not taxis[i].isWorking else math.dist(taxis[i].tasks[taxis[i].target_index//2].destination,tasks[-1].start))}")
+                    f.write(f" else {self.cost_dcop(taxis[i],tasks[-1])}")
                 f.write("\n")
             
             f.write("\n")
@@ -454,9 +467,10 @@ class Simulation:
                     case "greedy":
                         self.greedy_task_assignment(self.taxis, new_tasks)
                     case "dcop":
-                        self.generate_dcop(self.taxis, new_tasks, "dcop.yaml")
-                        allocation=self.solve_dcop("dcop.yaml")
-                        self.attribution_dcop(new_tasks, self.taxis, allocation['assignment'])
+                        if len(new_tasks)!= 0:
+                            self.generate_dcop(self.taxis, new_tasks, "dcop.yaml")
+                            allocation=self.solve_dcop("dcop.yaml")
+                            self.attribution_dcop(new_tasks, self.taxis, allocation['assignment'])
                     case "PSI":
                         self.PSI_task_assignment(self.taxis, new_tasks)
                     case "SSI":
@@ -467,16 +481,17 @@ class Simulation:
                         print("Résolution non reconnue, on utilise greedy")
                         self.greedy_task_assignment(self.taxis, new_tasks)
 
-                #Pour python 3.8
+                #Pour python 3.8 pour DCOP
                 # if self.resolutionType== "greedy":
                 #     self.greedy_task_assignment(self.taxis, new_tasks)
                 # elif self.resolutionType=="dcop":
-                #     self.generate_dcop(self.taxis, new_tasks, "dcop.yaml")
-                #     self.toggle_pause()
-                #     allocation=self.solve_dcop("dcop.yaml")
-                #     print(allocation['assignment'])
-                #     self.attribution_dcop(new_tasks, self.taxis, allocation['assignment'])
-                #     self.toggle_pause()
+                #     if len(new_tasks)!=0:
+                #         self.generate_dcop(self.taxis, new_tasks, "dcop.yaml")
+                    
+                #         allocation=self.solve_dcop("dcop.yaml")
+                #         print(allocation['assignment'])
+                #         self.attribution_dcop(new_tasks, self.taxis, allocation['assignment'])
+                    
                 
                 self.last_task_time = current_time
 
@@ -619,6 +634,6 @@ def plot_results(algo):
     plt.show()
 
 if __name__ == "__main__":
-    main(resolutionType="greedy", isPenalty=False, random_task=False, algo="dpop")
+    main(resolutionType="greedy", isPenalty=False, random_task=False, algo="dsa")
     print("Simulation avec l'algorithme greedy")    
     plot_results("greedy")
