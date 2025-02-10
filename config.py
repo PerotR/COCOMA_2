@@ -6,7 +6,7 @@ FPS = 60     # Taux de rafraîchissement (images par seconde)
 # --- Paramètres de simulation ---
 NUM_TAXIS = 3             # Nombre de taxis
 TASK_INTERVAL = 5000      # Intervalle de génération d'une nouvelle tâche (ms)
-NUM_TASKS_SPAWN = 8       # Nombre de tâches générées à chaque intervalle
+NUM_TASKS_SPAWN = 5       # Nombre de tâches générées à chaque intervalle
 TAXI_SPEED = 200          # Vitesse du taxi (pixels par seconde)
 
 # --- Couleurs (RGB) ---

@@ -1,17 +1,22 @@
 [
     {
         "resolutionType": "greedy",
-        "time": 73.234,
+        "time": 73.236,
         "nombre de tache": 5
     },
     {
-        "resolutionType": "greedy",
-        "time": 72.779,
-        "nombre de tache": 6
+        "resolutionType": "PSI",
+        "time": 84.954,
+        "nombre de tache": 5
     },
     {
-        "resolutionType": "greedy",
-        "time": 84.786,
-        "nombre de tache": 7
+        "resolutionType": "SSI",
+        "time": 80.426,
+        "nombre de tache": 5
+    },
+    {
+        "resolutionType": "regret",
+        "time": 76.872,
+        "nombre de tache": 5
     }
 ]

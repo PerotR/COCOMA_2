@@ -1,4 +1,3 @@
-# simulation.py
 from matplotlib import pyplot as plt
 import pygame
 import random
@@ -20,19 +19,19 @@ class Simulation:
         self.height = height # Taille de la fenêtre
         self.taxis = [] # Liste des taxis
         self.num_tasks_spawn = num_tasks_spawn # Nombre de tâches générées à chaque intervalle
-        self.paused = False
+        self.paused = False 
         self.resolutionType = resolutionType # Type de résolution (greedy, dcop, PSI, SSI, regret)
-        for i in range(num_taxis):
+        for i in range(num_taxis): # Création des taxis au centre de l'environnement
             pos = (config.WIDTH/2 + i, config.HEIGHT/2 + i)
             self.taxis.append(Taxi(i, pos))
         self.task_interval = task_interval # Intervalle de génération de tâches (en ms)
         self.last_task_time = -10000  # Temps (en ms) de la dernière génération de tâche
-        self.task_counter = 0    # Compteur pour assigner des ID uniques aux tâches
+        self.task_counter = 0    # Compteur pour assigner des ID uniques aux tâches, pour la génération aléatoire
         self.isPenalty = isPenalty # Indique si on utilise une pénalité en fonction de la taille des tâches à effectuer, pour insertion_heuristic
-        self.random_task = random_task # Générer des tâches aléatoires ou prédéfinies
+        self.random_task = random_task # Générer des tâches aléatoires ou prédéfinies, True pour aléatoire, False pour prédéfini
         self.algo = algo # Algorithme de résolution (dpop, dsa, etc.)
         self.task_list = [] # Liste des tâches prédéfinies
-        with open("task_created.json", "r") as f:
+        with open("task_created.json", "r") as f: # Charger les tâches prédéfinies
             task_json = json.load(f)
         for task in task_json:
             start = task["start"]
@@ -54,7 +53,7 @@ class Simulation:
         return tasks
     
     def created_tasks(self, num_tasks):
-        """Génère des tâches prédéfinies pour tester l'algorithme."""
+        """Génère des tâches prédéfinies pour tester les algorithmes sur les mêmes instances."""
 
         if self.task_list == []:
             print("Plus de tâches à générer !")
@@ -75,9 +74,8 @@ class Simulation:
         - Si le taxi est inactif (aucune tâche en attente), le coût est 
             distance(position du taxi, tâche.start) + distance(tâche.start, tâche.destination)
         - Sinon, le coût est égal à la somme des distances le long de la file d'attente 
-            (en partant de la position actuelle du taxi) + 
-            distance(dernier point atteint, tâche.start) + distance(tâche.start, tâche.destination).
-        - On test toutes les permutations possibles de la liste des nouvelles tâches.
+            distance(position actuelle, tâche.start) + distance(tâche.start, tâche.destination).
+        - On test toutes les permutations possibles de la liste des nouvelles tâches et on retient la meilleure.
         """
         
 
@@ -98,7 +96,6 @@ class Simulation:
 
                 for taxi in taxi_tmp:
                     # Calcul du coût de réalisation si l'on affecte cette tâche au taxi,
-                    # en suivant l'ordre FIFO des tâches déjà en file.
                     cost = 0.0
                     current_pos = taxi.position
                     
@@ -166,6 +163,7 @@ class Simulation:
                 route_cost += math.dist(current_pos, t.start) + math.dist(t.start, t.destination)
                 current_pos = t.destination
             best_taxi.current_route_cost = route_cost
+
 
     def cost_dcop(self, taxi, task):
         cost=100000000000
@@ -318,7 +316,6 @@ class Simulation:
         best_index = 0
         penalty = 0
 
-        # print(f"Calcul du coût marginal pour l'insertion de la tâche {task.id} dans le taxi {taxi.id} :")
 
         for pos in range(len(taxi.tasks) + 1): # On teste toutes les positions possibles pour l'insertion
             candidate_tasks = deepcopy(taxi.tasks)
@@ -378,7 +375,6 @@ class Simulation:
             best_bid = float('inf')
             for taxi in taxis:
                 bid, index = self.insertion_heuristic(taxi, task)
-                # print(f"Taxi {taxi.id} : coût marginal pour la tâche {task.id} = {bid:.2f}")
                 if bid < best_bid:
                     best_bid = bid
                     best_taxi = taxi 
@@ -389,7 +385,6 @@ class Simulation:
                 best_taxi.allow_reordering = False
                 if not best_taxi.isWorking:
                     best_taxi.build_route_from_current_tasks()
-                # print(f"=> Tâche {task.id} attribuée au taxi {best_taxi.id} (coût marginal = {best_bid:.2f})\n")
 
 
     def calculate_regret(self, taxis, tasks):
@@ -414,16 +409,14 @@ class Simulation:
 
         task_regrets.sort(key=lambda x: -x[1]) # Tri par regret décroissant
 
-        # print("Tâches triées par regret décroissant :")
-        # for tr in task_regrets:
-        #     print(f"Tâche {tr[0].id} : regret = {tr[1]:.2f}")
-
-        return [tr[0] for tr in task_regrets] # On retourne seulement les tâches dans l'ordre décroissant des regrets
+        return [tr[0] for tr in task_regrets] # On retourne les tâches dans l'ordre décroissant des regrets
 
     def regret_task_assignment(self, taxis, tasks):
+        """Attribution des tâches en fonction du regret, pour SSI basé sur le regret"""
 
-        ordered_tasks = self.calculate_regret(taxis, tasks)
+        ordered_tasks = self.calculate_regret(taxis, tasks) # Tâches triées par regret décroissant
 
+        #Puis on fait pareil que SSI mais sur les tâches triées avec le regret
         for task in ordered_tasks:
             best_taxi = None
             best_bid = float('inf')
@@ -443,8 +436,6 @@ class Simulation:
                     best_taxi.build_route_from_current_tasks()
 
                     
-                # print(f"=> Tâche {task.id} attribuée au taxi {best_taxi.id} (coût marginal = {best_bid:.2f})\n")
-
     def __repr__(self):
         return f"Simulation(width={self.width}, height={self.height}, num_taxis={len(self.taxis)}, task_interval={self.task_interval}, num_tasks_spawn={self.num_tasks_spawn})"
 
@@ -454,7 +445,8 @@ class Simulation:
     def update(self, current_time, dt):
         """
         Met à jour la simulation :
-         - Génère une nouvelle tâche tous les task_interval millisecondes et l'alloue.
+         - Génère une nouvelle tâche tous les TASK_INTERVAL millisecondes et l'alloue.
+         - Resout le problème d'allocation de tâches en utilisant l'algorithme spécifié.
          - Met à jour la position de chaque taxi.
         """
         if not self.paused:
@@ -489,7 +481,6 @@ class Simulation:
                 #         self.generate_dcop(self.taxis, new_tasks, "dcop.yaml")
                     
                 #         allocation=self.solve_dcop("dcop.yaml")
-                #         print(allocation['assignment'])
                 #         self.attribution_dcop(new_tasks, self.taxis, allocation['assignment'])
                     
                 
@@ -500,7 +491,7 @@ class Simulation:
 
     def draw(self, screen):
         """Affiche l'environnement, les trajets planifiés et les taxis."""
-        screen.fill(config.WHITE)  # fond blanc
+        screen.fill(config.WHITE)
 
         # Pour chaque taxi, dessiner son itinéraire et sa position
         for taxi in self.taxis:
@@ -569,7 +560,7 @@ def main(resolutionType, isPenalty=False, random_task=True, algo="dpop"):
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
                     sim.toggle_pause()
-                elif event.key == pygame.K_ESCAPE:  # Raccourci clavier pour arrêter
+                elif event.key == pygame.K_ESCAPE:
                     running = False
 
         sim.update(current_time, dt)
@@ -604,9 +595,10 @@ def main(resolutionType, isPenalty=False, random_task=True, algo="dpop"):
 
 
     pygame.quit()
-    sys.exit()
+    # sys.exit()
 
-def plot_results(algo):
+def plot_results():
+    """Affichage sous forme d'histogramme des temps d'exécution par type d'algorithme"""
     try:
         with open("res.json", "r") as f:
             data = json.load(f)
@@ -614,26 +606,33 @@ def plot_results(algo):
         print("Aucune donnée trouvée.")
         return
     
-    steps = []
-    times = []
+    # Extraction des données
+    algos = [entry["resolutionType"] for entry in data]
+    times = [entry["time"] for entry in data]
     
-    for entry in data:
-        if entry["resolutionType"] == algo:
-            steps.append(entry["nombre de tache"])
-            times.append(entry["time"])
+    # Création de l'histogramme
+    plt.bar(algos, times, color=['blue', 'green', 'red', 'purple'])
+    plt.xlabel("Type d'algorithme")
+    plt.ylabel("Temps (secondes)")
+    plt.title("Comparaison des performances des algorithmes sur 50 tâches avec pénalité")
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
     
-    if not steps:
-        print(f"Aucune donnée pour l'algorithme {algo}.")
-        return
+    # Affichage des valeurs sur les barres
+    for i, v in enumerate(times):
+        plt.text(i, v + 3, f"{v:.1f}", ha='center', fontsize=10)
     
-    plt.plot(steps, times, marker='o', linestyle='-')
-    plt.xlabel("nombre de tache")
-    plt.ylabel("Temps (minutes)")
-    plt.title(f"Performance de l'algorithme {algo}")
-    plt.grid()
     plt.show()
 
 if __name__ == "__main__":
-    main(resolutionType="greedy", isPenalty=False, random_task=False, algo="dsa")
-    print("Simulation avec l'algorithme greedy")    
-    plot_results("greedy")
+    print("Simulation avec l'algorithme greedy")   
+    main(resolutionType="greedy", isPenalty=True, random_task=False, algo="none")
+    # print("Simulation avec l'algorithme PSI")
+    # main(resolutionType="PSI", isPenalty=True, random_task=False, algo="none")
+    # print("Simulation avec l'algorithme SSI")
+    # main(resolutionType="SSI", isPenalty=True, random_task=False, algo="none")
+    # print("Simulation avec l'algorithme regret")
+    # main(resolutionType="regret", isPenalty=True, random_task=False, algo="none")
+    # sys.exit()
+    # plot_results()
+     
+
