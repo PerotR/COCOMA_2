@@ -241,9 +241,9 @@ class Simulation:
         if self.algo == "dpop":
             command = ["pydcop", "--output", output_file, "solve", "--algo", "dpop", yaml_file]
         if self.algo == "dsa":
-            command = ["pydcop", "--output", output_file, "solve", "--algo", "dsa", yaml_file]
+            command = ["pydcop", "--output", output_file,"--timeout","2", "solve", "--algo", "dsa", yaml_file]
         if self.algo == "mgm":
-            command = ["pydcop", "--output", output_file, "solve", "--algo", "mgm", "--timeout", "60",  yaml_file]
+            command = ["pydcop", "--output", output_file,"--timeout", "2", "solve", "--algo", "mgm",  yaml_file]
 
         result = subprocess.run(command, capture_output=True, text=True)
         
