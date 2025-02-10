@@ -133,4 +133,3 @@ class Taxi:
     
     def __repr__(self):
         return f"Taxi(id={self.id}, position={self.position}, tasks={self.tasks})"
-
