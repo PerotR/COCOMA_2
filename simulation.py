@@ -39,6 +39,7 @@ class Simulation:
             id = task["task_id"]
             task = Task(start, destination, id)
             self.task_list.append(task)
+        self.mean_route_cost = [] # Coût moyen des itinéraires des taxis pour évaluation
 
 
     def generate_task(self):
@@ -472,6 +473,9 @@ class Simulation:
                     case _:
                         print("Résolution non reconnue, on utilise greedy")
                         self.greedy_task_assignment(self.taxis, new_tasks)
+                    
+                mean_cost = sum([taxi.current_route_cost for taxi in self.taxis]) / len(self.taxis)
+                self.mean_route_cost.append(mean_cost)
 
                 #Pour python 3.8 pour DCOP
                 # if self.resolutionType== "greedy":
@@ -536,7 +540,7 @@ class Simulation:
 
         self.paused = not self.paused
 
-def main(resolutionType, isPenalty=False, random_task=True, algo="dpop"):
+def main(resolutionType, isPenalty=False, random_task=True, algo="none"):
     clock_start = pygame.time.get_ticks()
     step = 0
     pygame.init()
@@ -577,27 +581,45 @@ def main(resolutionType, isPenalty=False, random_task=True, algo="dpop"):
 
     clock_end = pygame.time.get_ticks()
     time_elapsed = (clock_end - clock_start) / 1000  # Temps écoulé en secondes
-    result = {"resolutionType": resolutionType, "time": time_elapsed, "nombre de tache" : config.NUM_TASKS_SPAWN}
-    
-    try:
-        with open("res.json", "r") as f:
-            data = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        data = []
-    
-    data.append(result)
-    
-    with open("res.json", "w") as f:
-        json.dump(data, f, indent=4)
-    
-    print(f"Step {step}, temps : {time_elapsed}s pour resolutionType = {resolutionType}")
+    mean_cost = sum(sim.mean_route_cost) / len(sim.mean_route_cost)
+
+    if resolutionType != "dcop":
+        result = {"resolutionType": resolutionType, "time": time_elapsed, "nombre de tache" : config.NUM_TASKS_SPAWN, "moyenne du cout de route": mean_cost}
+        
+        try:
+            with open("res.json", "r") as f:
+                data = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            data = []
+        
+        data.append(result)
+        
+        with open("res.json", "w") as f:
+            json.dump(data, f, indent=4)
+        
+        print(f"Step {step}, temps : {time_elapsed}s pour resolutionType = {resolutionType}")
+
+    elif resolutionType == "dcop":
+        result_dcop ={"algoDcop": algo, "time": time_elapsed, "nombre de tache": config.NUM_TASKS_SPAWN, "moyenne du cout de route": mean_cost} 
 
 
+        try:
+            with open("res_dcop.json", "r") as f:
+                data = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            data = []
+        
+        data.append(result_dcop)
+        
+        with open("res_dcop.json", "w") as f:
+            json.dump(data, f, indent=4)
+        
+        print(f"Step {step}, temps : {time_elapsed}s pour resolutionType = {algo}")
 
     pygame.quit()
     # sys.exit()
 
-def plot_results():
+def plot_results(type_eval):
     """Affichage sous forme d'histogramme des temps d'exécution par type d'algorithme"""
     try:
         with open("res.json", "r") as f:
@@ -609,30 +631,85 @@ def plot_results():
     # Extraction des données
     algos = [entry["resolutionType"] for entry in data]
     times = [entry["time"] for entry in data]
+    mean_costs = [entry["moyenne du cout de route"] for entry in data]
     
-    # Création de l'histogramme
-    plt.bar(algos, times, color=['blue', 'green', 'red', 'purple'])
-    plt.xlabel("Type d'algorithme")
-    plt.ylabel("Temps (secondes)")
-    plt.title("Comparaison des performances des algorithmes sur 50 tâches avec pénalité")
-    plt.grid(axis='y', linestyle='--', alpha=0.7)
-    
-    # Affichage des valeurs sur les barres
-    for i, v in enumerate(times):
-        plt.text(i, v + 3, f"{v:.1f}", ha='center', fontsize=10)
+    if type_eval == "time":
+        # Création de l'histogramme pour le temps
+        plt.bar(algos, times, color=['blue', 'green', 'red', 'purple'])
+        plt.xlabel("Type d'algorithme")
+        plt.ylabel("Temps (secondes)")
+        plt.title("Comparaison des performances des algorithmes sur 50 tâches sans pénalité")
+        plt.grid(axis='y', linestyle='--', alpha=0.7)
+        
+        # Affichage des valeurs sur les barres
+        for i, v in enumerate(times):
+            plt.text(i, v + 3, f"{v:.1f}", ha='center', fontsize=10)
+
+    if type_eval == "cost":
+        # Création de l'histogramme pour le coût moyen des itinéraires
+        plt.bar(algos, mean_costs, color=['blue', 'green', 'red', 'purple'])
+        plt.xlabel("Type d'algorithme")
+        plt.ylabel("coût moyen des itinéraires (en pixels)")
+        plt.title("Comparaison des coûts moyens des itinéraires sur 50 tâches sans pénalité")
+        plt.grid(axis='y', linestyle='--', alpha=0.7)
+
+        for i, v in enumerate(mean_costs):
+            plt.text(i, v + 3, f"{v:.1f}", ha='center', fontsize=10)
     
     plt.show()
 
+
+def plot_dcop_results(type_eval):
+    """Affichage sous forme d'histogramme des temps d'exécution par type d'algorithme pour dcop"""
+    try:
+        with open("res_dcop.json", "r") as f:
+            data = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        print("Aucune donnée trouvée.")
+        return
+    
+    # Extraction des données
+    algos = [entry["algoDcop"] for entry in data]
+    times = [entry["time"] for entry in data]
+    mean_costs = [entry["moyenne du cout de route"] for entry in data]
+
+    if type_eval == "time":
+        # Création de l'histogramme pour le temps
+        plt.bar(algos, times, color=['blue', 'green', 'red'])
+        plt.xlabel("Type d'algorithme")
+        plt.ylabel("Temps (secondes)")
+        plt.title("Comparaison des performances des algorithmes sur 50 tâches")
+        plt.grid(axis='y', linestyle='--', alpha=0.7)
+        
+        # Affichage des valeurs sur les barres
+        for i, v in enumerate(times):
+            plt.text(i, v + 3, f"{v:.1f}", ha='center', fontsize=10)
+
+    if type_eval == "cost":
+        # Création de l'histogramme pour le coût moyen des itinéraires
+        plt.bar(algos, mean_costs, color=['blue', 'green', 'red'])
+        plt.xlabel("Type d'algorithme")
+        plt.ylabel("coût moyen des itinéraires (en pixels)")
+        plt.title("Comparaison des coûts moyens des itinéraires sur 50 tâches")
+        plt.grid(axis='y', linestyle='--', alpha=0.7)
+
+        for i, v in enumerate(mean_costs):
+            plt.text(i, v + 3, f"{v:.1f}", ha='center', fontsize=10)
+    
+    plt.show()
+
+
 if __name__ == "__main__":
     print("Simulation avec l'algorithme greedy")   
-    main(resolutionType="greedy", isPenalty=True, random_task=False, algo="none")
-    # print("Simulation avec l'algorithme PSI")
-    # main(resolutionType="PSI", isPenalty=True, random_task=False, algo="none")
-    # print("Simulation avec l'algorithme SSI")
-    # main(resolutionType="SSI", isPenalty=True, random_task=False, algo="none")
-    # print("Simulation avec l'algorithme regret")
-    # main(resolutionType="regret", isPenalty=True, random_task=False, algo="none")
-    # sys.exit()
-    # plot_results()
+    main(resolutionType="greedy", isPenalty=False, random_task=False, algo="none")
+    print("Simulation avec l'algorithme PSI")
+    main(resolutionType="PSI", isPenalty=False, random_task=False, algo="none")
+    print("Simulation avec l'algorithme SSI")
+    main(resolutionType="SSI", isPenalty=False, random_task=False, algo="none")
+    print("Simulation avec l'algorithme regret")
+    main(resolutionType="regret", isPenalty=False, random_task=False, algo="none")
+    sys.exit()
+    # plot_results("time")
+    # plot_results("cost")
      
 
