@@ -1,26 +1,26 @@
 [
     {
         "resolutionType": "greedy",
-        "time": 73.291,
+        "time": 73.272,
         "nombre de tache": 5,
-        "moyenne du cout de route": 3449.113804316679
+        "moyenne du cout de route": 3431.023206017884
     },
     {
         "resolutionType": "PSI",
-        "time": 194.111,
+        "time": 89.387,
         "nombre de tache": 5,
-        "moyenne du cout de route": 5099.322830459621
+        "moyenne du cout de route": 3475.4230287511823
     },
     {
         "resolutionType": "SSI",
-        "time": 150.306,
+        "time": 80.442,
         "nombre de tache": 5,
-        "moyenne du cout de route": 3827.183258997893
+        "moyenne du cout de route": 3229.778703580129
     },
     {
         "resolutionType": "regret",
-        "time": 121.601,
+        "time": 76.898,
         "nombre de tache": 5,
-        "moyenne du cout de route": 3990.3837441304345
+        "moyenne du cout de route": 3656.415035730624
     }
 ]
